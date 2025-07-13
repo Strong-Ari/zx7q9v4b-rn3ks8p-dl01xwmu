@@ -1,88 +1,105 @@
-<img src="https://github.com/remotion-dev/template-next/assets/1629785/9092db5f-7c0c-4d38-97c4-5f5a61f5cc098" />
-<br/>
-<br/>
+# Ball Escape - Générateur de Vidéo TikTok avec Remotion
 
-This is a Next.js template for building programmatic video apps, with [`@remotion/player`](https://remotion.dev/player) and [`@remotion/lambda`](https://remotion.dev/lambda) built in.
+Un générateur de vidéo TikTok stylé qui simule un jeu "Ball Escape Rings" avec des animations fluides, des effets sonores MIDI et un design moderne.
 
-This template uses the Next.js App directory, with TailwindCSS. There is a [Non-TailwindCSS version](https://github.com/remotion-dev/template-next-app-dir), and a [Pages directory version](https://github.com/remotion-dev/template-next-pages-dir) of this template available.
+## 🎮 Fonctionnalités
 
-<img src="https://github.com/remotion-dev/template-next/assets/1629785/c9c2e5ca-2637-4ec8-8e40-a8feb5740d88" />
+- Animation fluide de deux balles (Yes/No) avec effet de traînée
+- Cercles semi-ouverts dynamiques avec animations d'explosion
+- Sons MIDI réactifs aux collisions
+- Interface style TikTok avec commentaire, scores et timer
+- Animation de fin stylée
+- Export en MP4/WebM haute qualité
 
-## Getting Started
+## 🛠️ Technologies
 
-[Use this template](https://github.com/new?template_name=template-next-app-dir-tailwind&template_owner=remotion-dev) to clone it into your GitHub account. Run
+- [Remotion](https://www.remotion.dev/) - Framework de génération vidéo React
+- [Next.js](https://nextjs.org/) - Framework React
+- [Tailwind CSS](https://tailwindcss.com/) - Framework CSS
+- Web Audio API - Gestion des sons MIDI
 
-```
-pnpm i
-```
+## 🚀 Installation
 
-afterwards. Alternatively, use this command to scaffold a project:
+1. Cloner le projet :
 
-```
-npx create-video@latest --next-tailwind
-```
-
-## Commands
-
-Start the Next.js dev server:
-
-```
-pnpm run dev
+```bash
+git clone [votre-repo]
+cd tiktok
 ```
 
-Open the Remotion Studio:
+2. Installer les dépendances :
 
-```
-npx remotion studio
-```
-
-Render a video locally:
-
-```
-pnpm exec remotion render
+```bash
+pnpm install
 ```
 
-Upgrade Remotion:
+## 💻 Développement
 
-```
-pnpm exec remotion upgrade
-```
+1. Lancer le serveur de développement :
 
-The following script will set up your Remotion Bundle and Lambda function on AWS:
-
-```
-node deploy.mjs
+```bash
+pnpm dev
 ```
 
-You should run this script after:
+2. Ouvrir [http://localhost:3000](http://localhost:3000)
 
-- changing the video template
-- changing `config.mjs`
-- upgrading Remotion to a newer version
+3. Pour le studio Remotion :
 
-## Set up rendering on AWS Lambda
+```bash
+pnpm remotion
+```
 
-This template supports rendering the videos via [Remotion Lambda](https://remotion.dev/lambda).
+## 🎥 Export Vidéo
 
-1. Copy the `.env.example` file to `.env` and fill in the values.
-   Complete the [Lambda setup guide](https://www.remotion.dev/docs/lambda/setup) to get your AWS credentials.
+Pour exporter la vidéo en MP4 :
 
-1. Edit the `config.mjs` file to your desired Lambda settings.
+```bash
+pnpm render
+# ou
+npx remotion render src/remotion/Root.tsx BallEscape out/video.mp4
+```
 
-1. Run `node deploy.mjs` to deploy your Lambda function and Remotion Bundle.
+## ⚙️ Configuration
 
-## Docs
+Les paramètres du jeu peuvent être modifiés dans `src/constants/game.ts` :
 
-Get started with Remotion by reading the [fundamentals page](https://www.remotion.dev/docs/the-fundamentals).
+- Dimensions de la vidéo
+- Durée
+- Taille et vitesse des balles
+- Configuration des cercles
+- Couleurs
+- Paramètres MIDI
 
-## Help
+## 🎨 Personnalisation
 
-We provide help on our [Discord server](https://remotion.dev/discord).
+1. **Couleurs** : Modifier les couleurs dans `src/constants/game.ts`
+2. **Sons** : Ajuster les fréquences MIDI dans `MIDI_CONFIG`
+3. **Animations** : Modifier les paramètres de spring et d'interpolation dans les composants
+4. **Interface** : Personnaliser les composants dans `src/components/UI.tsx`
 
-## Issues
+## 📝 Structure du Projet
 
-Found an issue with Remotion? [File an issue here](https://remotion.dev/issue).
+```
+src/
+  ├── components/      # Composants React
+  │   ├── Ball.tsx    # Balle avec traînée
+  │   ├── SemiCircle.tsx
+  │   ├── UI.tsx      # Interface TikTok
+  │   └── WinnerAnimation.tsx
+  ├── hooks/          # Hooks personnalisés
+  │   ├── useCollision.ts
+  │   └── useMidiPlayer.ts
+  ├── constants/      # Configuration
+  │   └── game.ts
+  └── remotion/       # Composition Remotion
+      ├── Root.tsx
+      └── BallEscape.tsx
+```
 
-## License
+## 🤝 Contribution
 
-Note that for some entities a company license is needed. [Read the terms here](https://github.com/remotion-dev/remotion/blob/main/LICENSE.md).
+Les contributions sont les bienvenues ! N'hésitez pas à ouvrir une issue ou une pull request.
+
+## 📄 Licence
+
+MIT

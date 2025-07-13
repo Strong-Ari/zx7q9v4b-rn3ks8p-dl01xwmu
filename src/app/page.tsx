@@ -1,65 +1,59 @@
 "use client";
 
 import { Player } from "@remotion/player";
-import type { NextPage } from "next";
-import React, { useMemo, useState } from "react";
-import { z } from "zod";
-import {
-  defaultMyCompProps,
-  CompositionProps,
-  DURATION_IN_FRAMES,
-  VIDEO_FPS,
-  VIDEO_HEIGHT,
-  VIDEO_WIDTH,
-} from "../../types/constants";
-import { RenderControls } from "../components/RenderControls";
-import { Spacing } from "../components/Spacing";
-import { Tips } from "../components/Tips";
-import { Main } from "../remotion/MyComp/Main";
+import { BallEscape } from "../remotion/BallEscape";
+import { GAME_CONFIG } from "../constants/game";
 
-const Home: NextPage = () => {
-  const [text, setText] = useState<string>(defaultMyCompProps.title);
-
-  const inputProps: z.infer<typeof CompositionProps> = useMemo(() => {
-    return {
-      title: text,
-    };
-  }, [text]);
-
+export default function Home() {
   return (
-    <div>
-      <div className="max-w-screen-md m-auto mb-5">
-        <div className="overflow-hidden rounded-geist shadow-[0_0_200px_rgba(0,0,0,0.15)] mb-10 mt-16">
-          <Player
-            component={Main}
-            inputProps={inputProps}
-            durationInFrames={DURATION_IN_FRAMES}
-            fps={VIDEO_FPS}
-            compositionHeight={VIDEO_HEIGHT}
-            compositionWidth={VIDEO_WIDTH}
-            style={{
-              // Can't use tailwind class for width since player's default styles take presedence over tailwind's,
-              // but not over inline styles
-              width: "100%",
-            }}
-            controls
-            autoPlay
-            loop
-          />
-        </div>
-        <RenderControls
-          text={text}
-          setText={setText}
-          inputProps={inputProps}
-        ></RenderControls>
-        <Spacing></Spacing>
-        <Spacing></Spacing>
-        <Spacing></Spacing>
-        <Spacing></Spacing>
-        <Tips></Tips>
-      </div>
-    </div>
-  );
-};
+    <main className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-4">
+      <h1 className="text-4xl font-bold text-white mb-8">
+        Ball Escape Preview
+      </h1>
 
-export default Home;
+      {/* Player Remotion */}
+      <div className="w-full max-w-3xl aspect-[9/16] bg-black rounded-lg overflow-hidden shadow-2xl">
+        <Player
+          component={BallEscape}
+          durationInFrames={GAME_CONFIG.DURATION_IN_SECONDS * GAME_CONFIG.FPS}
+          compositionWidth={GAME_CONFIG.VIDEO_WIDTH}
+          compositionHeight={GAME_CONFIG.VIDEO_HEIGHT}
+          fps={GAME_CONFIG.FPS}
+          style={{
+            width: "100%",
+            height: "100%",
+          }}
+          controls
+          autoPlay
+          loop
+        />
+      </div>
+
+      {/* Instructions */}
+      <div className="mt-8 max-w-3xl text-gray-300 space-y-4">
+        <h2 className="text-2xl font-semibold text-white">Comment jouer :</h2>
+        <ul className="list-disc list-inside space-y-2">
+          <li>
+            Regardez les balles "Yes" et "No" se déplacer à travers les cercles
+          </li>
+          <li>
+            Chaque fois qu'une balle traverse un cercle, il explose et le score
+            augmente
+          </li>
+          <li>Les collisions produisent des sons MIDI</li>
+          <li>Le jeu dure {GAME_CONFIG.DURATION_IN_SECONDS} secondes</li>
+          <li>À la fin, le gagnant est déterminé par le plus grand score</li>
+        </ul>
+
+        <h2 className="text-2xl font-semibold text-white mt-6">
+          Pour exporter la vidéo :
+        </h2>
+        <pre className="bg-gray-800 p-4 rounded-lg overflow-x-auto">
+          <code>
+            npx remotion render src/remotion/Root.tsx BallEscape out/video.mp4
+          </code>
+        </pre>
+      </div>
+    </main>
+  );
+}
