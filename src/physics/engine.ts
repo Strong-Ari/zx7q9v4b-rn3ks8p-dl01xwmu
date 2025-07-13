@@ -1,7 +1,7 @@
 import Matter from "matter-js";
 import { GAME_CONFIG } from "../constants/game";
 
-export interface PhysicsState {
+interface PhysicsState {
   yesBall: Matter.Body;
   noBall: Matter.Body;
   circles: Array<{
@@ -15,32 +15,34 @@ export interface PhysicsState {
 class PhysicsEngine {
   private engine: Matter.Engine;
   private world: Matter.World;
-  private runner: Matter.Runner;
   private state: PhysicsState;
   private collisionHandlers: {
     onBallCircleCollision: (ballId: string, circleId: number) => void;
     onBallBallCollision: () => void;
   };
   private lastFrameTime: number = 0;
+  private frameCount: number = 0;
 
   constructor(
     onBallCircleCollision: (ballId: string, circleId: number) => void,
     onBallBallCollision: () => void,
   ) {
-    // Créer le moteur physique avec des paramètres plus précis
+    // Créer le moteur physique avec des paramètres réalistes
     this.engine = Matter.Engine.create({
-      gravity: { x: 0, y: 0 },
+      gravity: { x: 0, y: 0.5 }, // Ajouter une gravité légère
       constraintIterations: 8,
       positionIterations: 12,
       velocityIterations: 8,
       timing: {
         timeScale: 1,
-        timestamp: 0,
       },
     });
 
+    // Ajuster les paramètres de simulation pour plus de stabilité
+    this.engine.world.gravity.scale = 0.001; // Réduire l'échelle de la gravité pour un effet plus subtil
+    this.engine.timing.timeScale = 1;
+
     this.world = this.engine.world;
-    this.runner = Matter.Runner.create();
     this.collisionHandlers = {
       onBallCircleCollision,
       onBallBallCollision,
@@ -49,8 +51,69 @@ class PhysicsEngine {
     // Initialiser l'état
     this.state = this.initializeState();
 
-    // Configurer les collisions
-    Matter.Events.on(this.engine, "collisionStart", this.handleCollisions);
+    // Configurer les collisions avec la nouvelle logique de rotation
+    Matter.Events.on(this.engine, "collisionStart", (event) => {
+      event.pairs.forEach((pair) => {
+        const { bodyA, bodyB } = pair;
+        const ballBody =
+          bodyA.label === "yesBall" || bodyA.label === "noBall"
+            ? bodyA
+            : bodyB.label === "yesBall" || bodyB.label === "noBall"
+              ? bodyB
+              : null;
+        const circleBody = bodyA.label.startsWith("circle_")
+          ? bodyA
+          : bodyB.label.startsWith("circle_")
+            ? bodyB
+            : null;
+
+        if (ballBody && circleBody) {
+          const circleId = parseInt(circleBody.label.split("_")[1]);
+          const circle = this.state.circles[circleId];
+
+          if (!circle.isExploding) {
+            const timeInSeconds = this.frameCount / GAME_CONFIG.FPS;
+            const baseRotation = (circleId * 360) / GAME_CONFIG.SPIRAL_DENSITY;
+            const currentRotation =
+              baseRotation +
+              timeInSeconds * GAME_CONFIG.SPIRAL_ROTATION_SPEED * 360;
+
+            const centerX = GAME_CONFIG.VIDEO_WIDTH / 2;
+            const centerY = GAME_CONFIG.VIDEO_HEIGHT / 2;
+            const ballAngle =
+              (Math.atan2(
+                ballBody.position.y - centerY,
+                ballBody.position.x - centerX,
+              ) *
+                180) /
+              Math.PI;
+
+            const normalizedBallAngle = (ballAngle + 360) % 360;
+            const gapStart = currentRotation % 360;
+            const gapEnd = (gapStart + GAME_CONFIG.CIRCLE_GAP_MAX_ANGLE) % 360;
+
+            const isInGap =
+              gapStart <= gapEnd
+                ? normalizedBallAngle >= gapStart &&
+                  normalizedBallAngle <= gapEnd
+                : normalizedBallAngle >= gapStart ||
+                  normalizedBallAngle <= gapEnd;
+
+            if (isInGap) {
+              this.collisionHandlers.onBallCircleCollision(
+                ballBody.label,
+                circleId,
+              );
+            } else {
+              Matter.Body.setVelocity(ballBody, {
+                x: -ballBody.velocity.x,
+                y: -ballBody.velocity.y,
+              });
+            }
+          }
+        }
+      });
+    });
   }
 
   private initializeState(): PhysicsState {
@@ -58,55 +121,93 @@ class PhysicsEngine {
     const centerY = GAME_CONFIG.VIDEO_HEIGHT / 2;
     const angle = Math.PI / 4;
 
-    // Créer les balles avec des propriétés physiques ajustées
+    // Créer les balles avec des propriétés physiques réalistes
     const yesBall = Matter.Bodies.circle(
-      centerX + Math.cos(angle) * GAME_CONFIG.MIN_CIRCLE_RADIUS,
-      centerY + Math.sin(angle) * GAME_CONFIG.MIN_CIRCLE_RADIUS,
+      centerX + Math.cos(angle) * GAME_CONFIG.INITIAL_CIRCLE_RADIUS,
+      centerY + Math.sin(angle) * GAME_CONFIG.INITIAL_CIRCLE_RADIUS,
       GAME_CONFIG.BALL_RADIUS,
       {
         label: "yesBall",
-        friction: 0.001,
-        frictionAir: 0.0005,
-        restitution: GAME_CONFIG.BALL_ELASTICITY,
-        mass: GAME_CONFIG.BALL_MASS,
+        friction: 0.01, // Très peu de friction pour des mouvements fluides
+        frictionAir: 0.001, // Légère résistance de l'air
+        restitution: 0.8, // Rebonds élastiques (0.8 = 80% de l'énergie conservée)
+        mass: 1,
         density: 0.001,
-        slop: 0.05,
-        timeScale: 1,
+        slop: 0.05, // Tolérance de chevauchement pour éviter les tremblements
+        inertia: Infinity, // Empêche la rotation de la balle
       },
     );
 
     const noBall = Matter.Bodies.circle(
-      centerX - Math.cos(angle) * GAME_CONFIG.MIN_CIRCLE_RADIUS,
-      centerY - Math.sin(angle) * GAME_CONFIG.MIN_CIRCLE_RADIUS,
+      centerX - Math.cos(angle) * GAME_CONFIG.INITIAL_CIRCLE_RADIUS,
+      centerY - Math.sin(angle) * GAME_CONFIG.INITIAL_CIRCLE_RADIUS,
       GAME_CONFIG.BALL_RADIUS,
       {
         label: "noBall",
-        friction: 0.001,
-        frictionAir: 0.0005,
-        restitution: GAME_CONFIG.BALL_ELASTICITY,
-        mass: GAME_CONFIG.BALL_MASS,
+        friction: 0.01,
+        frictionAir: 0.001,
+        restitution: 0.8,
+        mass: 1,
         density: 0.001,
         slop: 0.05,
-        timeScale: 1,
+        inertia: Infinity,
       },
     );
 
-    // Appliquer la vitesse initiale
+    // Appliquer une vitesse initiale plus naturelle
+    const initialSpeed = GAME_CONFIG.BALL_SPEED * 0.8;
     Matter.Body.setVelocity(yesBall, {
-      x: Math.cos(angle) * GAME_CONFIG.BALL_SPEED,
-      y: Math.sin(angle) * GAME_CONFIG.BALL_SPEED,
+      x: Math.cos(angle) * initialSpeed,
+      y: Math.sin(angle) * initialSpeed,
     });
 
     Matter.Body.setVelocity(noBall, {
-      x: -Math.cos(angle) * GAME_CONFIG.BALL_SPEED,
-      y: -Math.sin(angle) * GAME_CONFIG.BALL_SPEED,
+      x: -Math.cos(angle) * initialSpeed,
+      y: -Math.sin(angle) * initialSpeed,
     });
+
+    // Créer les murs invisibles pour contenir les balles
+    const wallThickness = 50;
+    const walls = [
+      // Sol
+      Matter.Bodies.rectangle(
+        GAME_CONFIG.VIDEO_WIDTH / 2,
+        GAME_CONFIG.VIDEO_HEIGHT + wallThickness / 2,
+        GAME_CONFIG.VIDEO_WIDTH,
+        wallThickness,
+        { isStatic: true, friction: 0.1, restitution: 0.8 },
+      ),
+      // Plafond
+      Matter.Bodies.rectangle(
+        GAME_CONFIG.VIDEO_WIDTH / 2,
+        -wallThickness / 2,
+        GAME_CONFIG.VIDEO_WIDTH,
+        wallThickness,
+        { isStatic: true, friction: 0.1, restitution: 0.8 },
+      ),
+      // Mur gauche
+      Matter.Bodies.rectangle(
+        -wallThickness / 2,
+        GAME_CONFIG.VIDEO_HEIGHT / 2,
+        wallThickness,
+        GAME_CONFIG.VIDEO_HEIGHT,
+        { isStatic: true, friction: 0.1, restitution: 0.8 },
+      ),
+      // Mur droit
+      Matter.Bodies.rectangle(
+        GAME_CONFIG.VIDEO_WIDTH + wallThickness / 2,
+        GAME_CONFIG.VIDEO_HEIGHT / 2,
+        wallThickness,
+        GAME_CONFIG.VIDEO_HEIGHT,
+        { isStatic: true, friction: 0.1, restitution: 0.8 },
+      ),
+    ];
 
     // Créer les cercles avec leurs segments
     const circles = this.createCircles();
 
     // Ajouter tous les corps au monde
-    Matter.World.add(this.world, [yesBall, noBall]);
+    Matter.World.add(this.world, [yesBall, noBall, ...walls]);
     circles.forEach((circle) => {
       Matter.World.add(this.world, circle.segments);
     });
@@ -118,137 +219,44 @@ class PhysicsEngine {
     };
   }
 
-  private createCircles() {
-    const circles: PhysicsState["circles"] = [];
-    const centerX = GAME_CONFIG.VIDEO_WIDTH / 2;
-    const centerY = GAME_CONFIG.VIDEO_HEIGHT / 2;
-    const spiralSpacing =
-      (GAME_CONFIG.MAX_CIRCLE_RADIUS - GAME_CONFIG.MIN_CIRCLE_RADIUS) /
-      GAME_CONFIG.SPIRAL_DENSITY;
-
-    for (let i = 0; i < GAME_CONFIG.SPIRAL_DENSITY; i++) {
-      const radius = GAME_CONFIG.MIN_CIRCLE_RADIUS + i * spiralSpacing;
-      const gapAngle =
-        GAME_CONFIG.CIRCLE_GAP_MIN_ANGLE +
-        Math.random() *
-          (GAME_CONFIG.CIRCLE_GAP_MAX_ANGLE - GAME_CONFIG.CIRCLE_GAP_MIN_ANGLE);
-      const gapRotation = Math.random() * 360;
-      const baseRotation = (i * 360) / GAME_CONFIG.SPIRAL_DENSITY;
-
-      // Créer les segments du cercle
-      const segments = this.createCircleSegments(
-        i,
-        radius,
-        gapAngle,
-        gapRotation + baseRotation,
-      );
-
-      circles.push({
-        id: i,
-        segments,
-        isExploding: false,
-        explosionColor: "none",
-      });
-    }
-
-    return circles;
-  }
-
-  private createCircleSegments(
-    circleId: number,
-    radius: number,
-    gapAngle: number,
-    rotation: number,
-  ): Matter.Body[] {
-    const centerX = GAME_CONFIG.VIDEO_WIDTH / 2;
-    const centerY = GAME_CONFIG.VIDEO_HEIGHT / 2;
-    const segments: Matter.Body[] = [];
-
-    // Convertir les angles en radians
-    const gapStart = (rotation * Math.PI) / 180;
-    const gapEnd = ((rotation + gapAngle) * Math.PI) / 180;
-    const arcLength = 2 * Math.PI - (gapEnd - gapStart);
-
-    // Augmenter le nombre de segments pour une meilleure précision
-    const numSegments = Math.ceil(arcLength / (Math.PI / 16));
-    const segmentAngle = arcLength / numSegments;
-
-    // Créer les segments
-    for (let i = 0; i < numSegments; i++) {
-      const angle1 = gapEnd + i * segmentAngle;
-      const angle2 = angle1 + segmentAngle;
-
-      const x1 = centerX + radius * Math.cos(angle1);
-      const y1 = centerY + radius * Math.sin(angle1);
-      const x2 = centerX + radius * Math.cos(angle2);
-      const y2 = centerY + radius * Math.sin(angle2);
-
-      const segment = Matter.Bodies.rectangle(
-        (x1 + x2) / 2,
-        (y1 + y2) / 2,
-        Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2)),
-        GAME_CONFIG.CIRCLE_STROKE_WIDTH,
-        {
-          angle: Math.atan2(y2 - y1, x2 - x1),
-          isStatic: true,
-          label: `circle_${circleId}`,
-          render: { visible: false },
-          friction: 0,
-          restitution: GAME_CONFIG.BALL_ELASTICITY,
-          slop: 0.05,
-        },
-      );
-
-      segments.push(segment);
-    }
-
-    return segments;
-  }
-
-  private handleCollisions = (event: Matter.IEventCollision<Matter.Engine>) => {
-    event.pairs.forEach((pair) => {
-      const { bodyA, bodyB } = pair;
-
-      // Collision entre balles
-      if (
-        (bodyA.label === "yesBall" && bodyB.label === "noBall") ||
-        (bodyA.label === "noBall" && bodyB.label === "yesBall")
-      ) {
-        this.collisionHandlers.onBallBallCollision();
-        return;
-      }
-
-      // Collision avec un segment de cercle
-      const ballBody =
-        bodyA.label === "yesBall" || bodyA.label === "noBall" ? bodyA : bodyB;
-      const circleBody = bodyA.label.startsWith("circle_") ? bodyA : bodyB;
-
-      if (ballBody && circleBody) {
-        const circleId = parseInt(circleBody.label.split("_")[1]);
-        this.collisionHandlers.onBallCircleCollision(ballBody.label, circleId);
-      }
-    });
-  };
-
   public update(frame: number) {
-    // Calculer le delta temps depuis la dernière frame
     const currentTime = frame * (1000 / GAME_CONFIG.FPS);
     const deltaTime = this.lastFrameTime
       ? currentTime - this.lastFrameTime
       : 1000 / GAME_CONFIG.FPS;
     this.lastFrameTime = currentTime;
+    this.frameCount = frame;
 
-    // Mettre à jour le moteur physique avec le delta temps
     Matter.Engine.update(this.engine, deltaTime);
 
     // Mettre à jour la rotation des segments des cercles
     this.state.circles.forEach((circle, circleIndex) => {
       if (!circle.isExploding) {
-        const rotationSpeed =
-          GAME_CONFIG.SPIRAL_ROTATION_SPEED * (Math.PI / 180);
-        const baseRotation =
-          ((circleIndex * 360) / GAME_CONFIG.SPIRAL_DENSITY) * (Math.PI / 180);
-        const currentRotation = frame * rotationSpeed + baseRotation;
+        // Calculer la rotation cyclique de la même manière que dans SemiCircle.tsx
+        const rotationPeriod = 1 / GAME_CONFIG.SPIRAL_ROTATION_SPEED; // Période en secondes
+        const timeInSeconds = (frame / GAME_CONFIG.FPS) % rotationPeriod;
+        const rotationProgress = timeInSeconds / rotationPeriod; // 0 à 1
+        const baseRotation = (circleIndex * 360) / GAME_CONFIG.SPIRAL_DENSITY;
+        const rotation = rotationProgress * 360; // Convertir en degrés
+        const totalRotation =
+          ((rotation + baseRotation) % 360) * (Math.PI / 180); // Convertir en radians
+
+        // Log de débogage pour la physique
+        if (frame % 30 === 0 && circleIndex === 0) {
+          console.log("--- Debug Physics Rotation ---");
+          console.log("Frame:", frame);
+          console.log("Time in seconds:", timeInSeconds);
+          console.log("Rotation Period:", rotationPeriod);
+          console.log("Rotation Progress:", rotationProgress);
+          console.log("Base Rotation:", baseRotation);
+          console.log("Current Rotation:", rotation);
+          console.log(
+            "Total Rotation (degrees):",
+            (totalRotation * 180) / Math.PI,
+          );
+          console.log("Delta Time:", deltaTime);
+          console.log("------------------");
+        }
 
         circle.segments.forEach((segment) => {
           const radius = Math.sqrt(
@@ -259,18 +267,18 @@ class PhysicsEngine {
           Matter.Body.setPosition(segment, {
             x:
               GAME_CONFIG.VIDEO_WIDTH / 2 +
-              radius * Math.cos(segment.angle + currentRotation),
+              radius * Math.cos(segment.angle + totalRotation),
             y:
               GAME_CONFIG.VIDEO_HEIGHT / 2 +
-              radius * Math.sin(segment.angle + currentRotation),
+              radius * Math.sin(segment.angle + totalRotation),
           });
 
-          Matter.Body.setAngle(segment, segment.angle + currentRotation);
+          Matter.Body.setAngle(segment, segment.angle + totalRotation);
         });
       }
     });
 
-    // Appliquer les contraintes de vitesse
+    // Appliquer les contraintes de vitesse aux balles
     const bodies = [this.state.yesBall, this.state.noBall];
     bodies.forEach((body) => {
       const velocity = body.velocity;
@@ -278,18 +286,20 @@ class PhysicsEngine {
         velocity.x * velocity.x + velocity.y * velocity.y,
       );
 
-      // Vitesse minimale
-      if (speed < GAME_CONFIG.BALL_MIN_SPEED) {
-        const factor = GAME_CONFIG.BALL_MIN_SPEED / speed;
+      // Ajuster la vitesse en fonction du temps écoulé
+      const timeProgress =
+        frame / (GAME_CONFIG.DURATION_IN_SECONDS * GAME_CONFIG.FPS);
+      const speedMultiplier = 1 + timeProgress * 0.5; // Augmentation progressive de la vitesse
+
+      // Appliquer les limites de vitesse
+      if (speed < GAME_CONFIG.BALL_MIN_SPEED * speedMultiplier) {
+        const factor = (GAME_CONFIG.BALL_MIN_SPEED * speedMultiplier) / speed;
         Matter.Body.setVelocity(body, {
           x: velocity.x * factor,
           y: velocity.y * factor,
         });
-      }
-
-      // Vitesse maximale
-      if (speed > GAME_CONFIG.BALL_MAX_SPEED) {
-        const factor = GAME_CONFIG.BALL_MAX_SPEED / speed;
+      } else if (speed > GAME_CONFIG.BALL_MAX_SPEED * speedMultiplier) {
+        const factor = (GAME_CONFIG.BALL_MAX_SPEED * speedMultiplier) / speed;
         Matter.Body.setVelocity(body, {
           x: velocity.x * factor,
           y: velocity.y * factor,
@@ -311,9 +321,60 @@ class PhysicsEngine {
   }
 
   public cleanup() {
-    Matter.Runner.stop(this.runner);
-    Matter.Engine.clear(this.engine);
     Matter.World.clear(this.world, false);
+    Matter.Engine.clear(this.engine);
+  }
+
+  private createCircles() {
+    const circles: PhysicsState["circles"] = [];
+    const centerX = GAME_CONFIG.VIDEO_WIDTH / 2;
+    const centerY = GAME_CONFIG.VIDEO_HEIGHT / 2;
+
+    // Augmenter l'espacement entre les cercles
+    const radiusStep =
+      (GAME_CONFIG.MAX_CIRCLE_RADIUS - GAME_CONFIG.MIN_CIRCLE_RADIUS) /
+      (GAME_CONFIG.SPIRAL_DENSITY - 1);
+
+    for (let i = 0; i < GAME_CONFIG.SPIRAL_DENSITY; i++) {
+      const radius = GAME_CONFIG.MIN_CIRCLE_RADIUS + radiusStep * i * 1.5; // Augmentation de 50% de l'espacement
+
+      const segments: Matter.Body[] = [];
+      const segmentCount = 36;
+      const gapAngle =
+        GAME_CONFIG.CIRCLE_GAP_MIN_ANGLE +
+        Math.random() *
+          (GAME_CONFIG.CIRCLE_GAP_MAX_ANGLE - GAME_CONFIG.CIRCLE_GAP_MIN_ANGLE);
+
+      for (let j = 0; j < segmentCount; j++) {
+        const angle = (j * 360) / segmentCount;
+        if (angle < 360 - gapAngle) {
+          const segment = Matter.Bodies.rectangle(
+            centerX + radius * Math.cos((angle * Math.PI) / 180),
+            centerY + radius * Math.sin((angle * Math.PI) / 180),
+            radius * 0.1,
+            GAME_CONFIG.CIRCLE_STROKE_WIDTH,
+            {
+              isStatic: true,
+              angle: (angle * Math.PI) / 180,
+              label: `circle_${i}_segment_${j}`,
+              render: {
+                fillStyle: GAME_CONFIG.COLORS.CIRCLE_COLOR,
+              },
+            },
+          );
+          segments.push(segment);
+        }
+      }
+
+      circles.push({
+        id: i,
+        segments,
+        isExploding: false,
+        explosionColor: GAME_CONFIG.COLORS.YES_BALL,
+      });
+    }
+
+    return circles;
   }
 }
 

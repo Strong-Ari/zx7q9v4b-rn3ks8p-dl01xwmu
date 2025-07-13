@@ -1,5 +1,5 @@
-import React from "react";
-import { interpolate, useCurrentFrame } from "remotion";
+import React, { useEffect } from "react";
+import { interpolate, useCurrentFrame, useVideoConfig } from "remotion";
 import { GAME_CONFIG } from "../constants/game";
 
 interface SemiCircleProps {
@@ -20,14 +20,40 @@ export const SemiCircle: React.FC<SemiCircleProps> = ({
   baseRotation,
 }) => {
   const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+
+  // Calculer la rotation cyclique
+  const rotationPeriod = 1 / GAME_CONFIG.SPIRAL_ROTATION_SPEED; // Période en secondes
+  const timeInSeconds = (frame / fps) % rotationPeriod;
+  const rotationProgress = timeInSeconds / rotationPeriod; // 0 à 1
+  const rotation = rotationProgress * 360; // Convertir en degrés
 
   // Calculer la rotation totale
-  const totalRotation =
-    baseRotation + frame * GAME_CONFIG.SPIRAL_ROTATION_SPEED;
+  const totalRotation = (rotation + baseRotation) % 360; // Utiliser modulo pour éviter l'accumulation
 
-  // Calculer l'angle de début et de fin pour l'arc
-  const startAngle = gapRotation + totalRotation;
-  const endAngle = startAngle + (360 - gapAngle);
+  // Logs pour déboguer la rotation
+  useEffect(() => {
+    if (frame % 30 === 0) {
+      console.log("--- Debug Visual Rotation ---");
+      console.log("Frame:", frame);
+      console.log("FPS:", fps);
+      console.log("Time in seconds:", timeInSeconds);
+      console.log("Rotation Period:", rotationPeriod);
+      console.log("Rotation Progress:", rotationProgress);
+      console.log("Base Rotation:", baseRotation);
+      console.log("Current Rotation:", rotation);
+      console.log("Total Rotation:", totalRotation);
+      console.log("------------------");
+    }
+  }, [
+    frame,
+    fps,
+    timeInSeconds,
+    rotationPeriod,
+    baseRotation,
+    rotation,
+    totalRotation,
+  ]);
 
   // Animation d'explosion
   const explosionProgress = isExploding
@@ -54,7 +80,10 @@ export const SemiCircle: React.FC<SemiCircleProps> = ({
     ],
   );
 
-  // Convertir les angles en coordonnées pour le path SVG
+  // Créer le chemin de l'arc
+  const startAngle = gapRotation;
+  const endAngle = startAngle + (360 - gapAngle);
+
   const createArcPath = (
     radius: number,
     startAngle: number,
@@ -78,20 +107,15 @@ export const SemiCircle: React.FC<SemiCircleProps> = ({
 
   return (
     <g
-      transform={`translate(${GAME_CONFIG.VIDEO_WIDTH / 2} ${
-        GAME_CONFIG.VIDEO_HEIGHT / 2
-      }) scale(${scale})`}
+      transform={`
+        translate(${GAME_CONFIG.VIDEO_WIDTH / 2} ${GAME_CONFIG.VIDEO_HEIGHT / 2})
+        rotate(${totalRotation})
+        scale(${scale})
+      `}
       style={{ opacity }}
     >
       <defs>
-        <linearGradient
-          id={gradientId}
-          x1="0%"
-          y1="0%"
-          x2="100%"
-          y2="100%"
-          gradientTransform={`rotate(${totalRotation})`}
-        >
+        <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor={GAME_CONFIG.CIRCLE_GRADIENT_START} />
           <stop offset="100%" stopColor={GAME_CONFIG.CIRCLE_GRADIENT_END} />
         </linearGradient>
