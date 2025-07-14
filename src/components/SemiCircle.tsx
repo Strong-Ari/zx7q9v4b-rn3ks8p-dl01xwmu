@@ -19,7 +19,6 @@ export const SemiCircle: React.FC<SemiCircleProps> = ({
   isExploding,
   explosionColor,
 }) => {
-  // If the ring is exploding, don't render anything
   if (isExploding) {
     return null;
   }
@@ -27,13 +26,11 @@ export const SemiCircle: React.FC<SemiCircleProps> = ({
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  // Calculer la rotation en synchronisation avec le moteur physique
   const timeInSeconds = frame / fps;
   const currentRotation =
     (baseRotation + timeInSeconds * GAME_CONFIG.SPIRAL_ROTATION_SPEED * 360) %
     360;
 
-  // Créer le chemin de l'arc - logique simple et robuste
   const createArcPath = () => {
     const segments = 36;
     const points: string[] = [];
@@ -56,6 +53,7 @@ export const SemiCircle: React.FC<SemiCircleProps> = ({
   };
 
   const strokeWidth = GAME_CONFIG.CIRCLE_STROKE_WIDTH;
+  const filterId = `glow-${radius}`;
 
   return (
     <g
@@ -75,6 +73,17 @@ export const SemiCircle: React.FC<SemiCircleProps> = ({
           <stop offset="0%" stopColor={GAME_CONFIG.CIRCLE_GRADIENT_START} />
           <stop offset="100%" stopColor={GAME_CONFIG.CIRCLE_GRADIENT_END} />
         </linearGradient>
+        <filter id={filterId}>
+          <feGaussianBlur stdDeviation="1.5" result="blur" />
+          <feComposite in="SourceGraphic" in2="blur" operator="over" />
+          <feDropShadow
+            dx="0"
+            dy="0"
+            stdDeviation="2"
+            floodColor={GAME_CONFIG.CIRCLE_GRADIENT_START}
+            floodOpacity="0.5"
+          />
+        </filter>
       </defs>
       <path
         d={createArcPath()}
@@ -82,6 +91,7 @@ export const SemiCircle: React.FC<SemiCircleProps> = ({
         strokeWidth={strokeWidth}
         strokeLinecap="round"
         fill="none"
+        filter={`url(#${filterId})`}
       />
     </g>
   );

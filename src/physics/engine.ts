@@ -27,19 +27,19 @@ class PhysicsEngine {
     onBallCircleCollision: (ballId: string, circleId: number) => void,
     onBallBallCollision: () => void,
   ) {
-    // Créer le moteur physique avec des paramètres réalistes
+    // Créer le moteur physique avec des paramètres optimisés pour la précision
     this.engine = Matter.Engine.create({
-      gravity: { x: 0, y: 0.5 }, // Ajouter une gravité légère
-      constraintIterations: 8,
-      positionIterations: 12,
-      velocityIterations: 8,
+      gravity: { x: 0, y: 0.5 },
+      constraintIterations: 12, // Augmenté pour plus de précision
+      positionIterations: 16, // Augmenté pour plus de précision
+      velocityIterations: 12, // Augmenté pour plus de précision
       timing: {
         timeScale: 1,
       },
     });
 
     // Ajuster les paramètres de simulation pour plus de stabilité
-    this.engine.world.gravity.scale = 0.001; // Réduire l'échelle de la gravité pour un effet plus subtil
+    this.engine.world.gravity.scale = 0.001;
     this.engine.timing.timeScale = 1;
 
     this.world = this.engine.world;
@@ -48,7 +48,6 @@ class PhysicsEngine {
       onBallBallCollision,
     };
 
-    // Initialiser l'état
     this.state = this.initializeState();
 
     // Configurer les collisions avec la logique originale
@@ -105,9 +104,27 @@ class PhysicsEngine {
                 circleId,
               );
             } else {
+              // Appliquer une force de rebond plus forte
+              const velocity = ballBody.velocity;
+              const speed = Math.sqrt(
+                velocity.x * velocity.x + velocity.y * velocity.y,
+              );
+              const radius = Math.sqrt(
+                Math.pow(ballBody.position.x - centerX, 2) +
+                  Math.pow(ballBody.position.y - centerY, 2),
+              );
+              const normalX = (ballBody.position.x - centerX) / radius;
+              const normalY = (ballBody.position.y - centerY) / radius;
+
               Matter.Body.setVelocity(ballBody, {
-                x: -ballBody.velocity.x * 0.8,
-                y: -ballBody.velocity.y * 0.8,
+                x: -normalX * speed,
+                y: -normalY * speed,
+              });
+
+              // Déplacer légèrement la balle pour éviter qu'elle ne reste coincée
+              Matter.Body.setPosition(ballBody, {
+                x: ballBody.position.x + normalX * 2,
+                y: ballBody.position.y + normalY * 2,
               });
             }
           }
@@ -130,20 +147,24 @@ class PhysicsEngine {
     const centerY = GAME_CONFIG.VIDEO_HEIGHT / 2;
     const angle = Math.PI / 4;
 
-    // Créer les balles avec des propriétés physiques réalistes
+    // Créer les balles avec des propriétés physiques plus strictes
     const yesBall = Matter.Bodies.circle(
       centerX + Math.cos(angle) * GAME_CONFIG.INITIAL_CIRCLE_RADIUS,
       centerY + Math.sin(angle) * GAME_CONFIG.INITIAL_CIRCLE_RADIUS,
       GAME_CONFIG.BALL_RADIUS,
       {
         label: "yesBall",
-        friction: 0.01, // Très peu de friction pour des mouvements fluides
-        frictionAir: 0.001, // Légère résistance de l'air
-        restitution: 0.8, // Rebonds élastiques (0.8 = 80% de l'énergie conservée)
+        friction: 0.01,
+        frictionAir: 0.001,
+        restitution: 0.8,
         mass: 1,
         density: 0.001,
-        slop: 0.05, // Tolérance de chevauchement pour éviter les tremblements
-        inertia: Infinity, // Empêche la rotation de la balle
+        slop: 0.01, // Réduire la tolérance de chevauchement
+        inertia: Infinity,
+        collisionFilter: {
+          category: 0x0002,
+          mask: 0x0001,
+        },
       },
     );
 
@@ -158,8 +179,12 @@ class PhysicsEngine {
         restitution: 0.8,
         mass: 1,
         density: 0.001,
-        slop: 0.05,
+        slop: 0.01, // Réduire la tolérance de chevauchement
         inertia: Infinity,
+        collisionFilter: {
+          category: 0x0002,
+          mask: 0x0001,
+        },
       },
     );
 
@@ -241,7 +266,9 @@ class PhysicsEngine {
     // Mettre à jour la rotation des segments des cercles de manière fluide
     this.state.circles.forEach((circle, circleIndex) => {
       if (!circle.isExploding) {
-        const timeInSeconds = frame / GAME_CONFIG.FPS;
+        // Ajouter une légère compensation pour le délai de rendu (1/4 de frame)
+        const timeOffset = 1 / (GAME_CONFIG.FPS * 4);
+        const timeInSeconds = frame / GAME_CONFIG.FPS + timeOffset;
         const baseRotation = (circleIndex * 360) / GAME_CONFIG.SPIRAL_DENSITY;
         const currentRotation =
           (baseRotation +
@@ -344,8 +371,8 @@ class PhysicsEngine {
           const segment = Matter.Bodies.rectangle(
             centerX + radius * Math.cos((angle * Math.PI) / 180),
             centerY + radius * Math.sin((angle * Math.PI) / 180),
-            radius * 0.1,
-            GAME_CONFIG.CIRCLE_STROKE_WIDTH,
+            radius * 0.15, // Augmenter légèrement la largeur des segments
+            GAME_CONFIG.CIRCLE_STROKE_WIDTH * 1.5, // Augmenter légèrement l'épaisseur
             {
               isStatic: true,
               angle: (angle * Math.PI) / 180,
@@ -353,6 +380,13 @@ class PhysicsEngine {
               render: {
                 fillStyle: GAME_CONFIG.COLORS.CIRCLE_COLOR,
               },
+              collisionFilter: {
+                category: 0x0001,
+                mask: 0x0002,
+              },
+              chamfer: { radius: 2 }, // Arrondir légèrement les bords pour éviter les accrochages
+              friction: 0.1,
+              restitution: 0.5,
             },
           );
           segments.push(segment);
