@@ -26,18 +26,18 @@ export const Ball: React.FC<BallProps> = ({
   const color =
     type === "yes" ? GAME_CONFIG.COLORS.YES_BALL : GAME_CONFIG.COLORS.NO_BALL;
 
-  // Animation de pulsation
+  // Animation de pulsation simple
   const scale = interpolate(Math.sin(frame * 0.1), [-1, 1], [0.95, 1.05]);
 
-  // Rendu de la traînée
+  // Rendu de la traînée simple et proportionnée
   const renderTrail = () => {
     if (trail.length < 2) return null;
 
     return trail.map((pos, index) => {
       // Assurer que l'interpolation a toujours une plage croissante
       const progress = trail.length > 1 ? index / (trail.length - 1) : 0;
-      const opacity = interpolate(progress, [0, 1], [0.8, 0]);
-      const trailScale = interpolate(progress, [0, 1], [0.9, 0.3]);
+      const opacity = interpolate(progress, [0, 1], [0.6, 0]);
+      const trailScale = interpolate(progress, [0, 1], [0.8, 0.3]);
 
       return (
         <circle

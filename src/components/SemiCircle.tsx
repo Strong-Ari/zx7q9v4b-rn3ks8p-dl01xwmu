@@ -19,54 +19,23 @@ export const SemiCircle: React.FC<SemiCircleProps> = ({
   isExploding,
   explosionColor,
 }) => {
+  // If the ring is exploding, don't render anything
+  if (isExploding) {
+    return null;
+  }
+
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  // Calculer la position de base de l'anneau
-  const ringPosition = baseRotation * (radius / GAME_CONFIG.MAX_CIRCLE_RADIUS);
+  // Calculer la rotation en synchronisation avec le moteur physique
+  const timeInSeconds = frame / fps;
+  const currentRotation =
+    (baseRotation + timeInSeconds * GAME_CONFIG.SPIRAL_ROTATION_SPEED * 360) %
+    360;
 
-  // Calculer une rotation lente basée sur la position de l'anneau
-  const baseSpeed = 0.5; // Vitesse de base en degrés par frame
-  const speedMultiplier =
-    1 -
-    (radius - GAME_CONFIG.MIN_CIRCLE_RADIUS) /
-      (GAME_CONFIG.MAX_CIRCLE_RADIUS - GAME_CONFIG.MIN_CIRCLE_RADIUS);
-
-  // Les anneaux extérieurs tournent plus lentement que les anneaux intérieurs
-  const rotationSpeed = baseSpeed * (0.5 + speedMultiplier * 0.5);
-
-  // Calculer la rotation actuelle
-  const currentRotation = (frame * rotationSpeed + ringPosition) % 360;
-
-  // Appliquer une rotation douce
-  const smoothedRotation = interpolate(
-    frame,
-    [0, fps],
-    [currentRotation, currentRotation + rotationSpeed],
-    {
-      extrapolateRight: "clamp",
-      easing: (t) => 1 - Math.pow(1 - t, 3), // Easing cubique pour une rotation plus naturelle
-    },
-  );
-
-  // Animation d'explosion
-  const explosionProgress = isExploding
-    ? interpolate(frame % 30, [0, 29], [0, 1], {
-        extrapolateRight: "clamp",
-      })
-    : 0;
-
-  const scale = isExploding
-    ? interpolate(explosionProgress, [0, 1], [1, 1.2])
-    : 1;
-
-  const opacity = isExploding
-    ? interpolate(explosionProgress, [0, 0.7, 1], [1, 0.5, 0])
-    : 1;
-
-  // Créer le chemin de l'arc
+  // Créer le chemin de l'arc - logique simple et robuste
   const createArcPath = () => {
-    const segments = 36; // Nombre de segments pour créer l'arc
+    const segments = 36;
     const points: string[] = [];
     const gap = gapAngle / 2;
 
@@ -86,25 +55,14 @@ export const SemiCircle: React.FC<SemiCircleProps> = ({
     return points.join(" ");
   };
 
-  // Effet de brillance
-  const glowEffect = isExploding ? "url(#explosion-glow)" : "url(#ring-glow)";
-  const strokeWidth = interpolate(
-    radius,
-    [GAME_CONFIG.MIN_CIRCLE_RADIUS, GAME_CONFIG.MAX_CIRCLE_RADIUS],
-    [
-      GAME_CONFIG.CIRCLE_STROKE_WIDTH * 1.2,
-      GAME_CONFIG.CIRCLE_STROKE_WIDTH * 0.8,
-    ],
-  );
+  const strokeWidth = GAME_CONFIG.CIRCLE_STROKE_WIDTH;
 
   return (
     <g
       transform={`
         translate(${GAME_CONFIG.VIDEO_WIDTH / 2} ${GAME_CONFIG.VIDEO_HEIGHT / 2})
-        rotate(${smoothedRotation})
-        scale(${scale})
+        rotate(${currentRotation})
       `}
-      style={{ opacity }}
     >
       <defs>
         <linearGradient
@@ -117,34 +75,13 @@ export const SemiCircle: React.FC<SemiCircleProps> = ({
           <stop offset="0%" stopColor={GAME_CONFIG.CIRCLE_GRADIENT_START} />
           <stop offset="100%" stopColor={GAME_CONFIG.CIRCLE_GRADIENT_END} />
         </linearGradient>
-        <filter id="ring-glow">
-          <feGaussianBlur stdDeviation="2" />
-          <feColorMatrix
-            type="matrix"
-            values="0 0 0 0 0.2
-                    0 0 0 0 0.8
-                    0 0 0 0 0.4
-                    0 0 0 1 0"
-          />
-        </filter>
-        <filter id="explosion-glow">
-          <feGaussianBlur stdDeviation="4" />
-          <feColorMatrix
-            type="matrix"
-            values="0 0 0 0 1
-                    0 0 0 0 0.5
-                    0 0 0 0 0
-                    0 0 0 1 0"
-          />
-        </filter>
       </defs>
       <path
         d={createArcPath()}
-        stroke={isExploding ? explosionColor : `url(#ring-gradient-${radius})`}
+        stroke={`url(#ring-gradient-${radius})`}
         strokeWidth={strokeWidth}
         strokeLinecap="round"
         fill="none"
-        filter={glowEffect}
       />
     </g>
   );

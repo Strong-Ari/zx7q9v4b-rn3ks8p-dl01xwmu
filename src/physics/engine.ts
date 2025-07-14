@@ -51,7 +51,7 @@ class PhysicsEngine {
     // Initialiser l'état
     this.state = this.initializeState();
 
-    // Configurer les collisions avec la nouvelle logique de rotation
+    // Configurer les collisions avec la logique originale
     Matter.Events.on(this.engine, "collisionStart", (event) => {
       event.pairs.forEach((pair) => {
         const { bodyA, bodyB } = pair;
@@ -106,11 +106,20 @@ class PhysicsEngine {
               );
             } else {
               Matter.Body.setVelocity(ballBody, {
-                x: -ballBody.velocity.x,
-                y: -ballBody.velocity.y,
+                x: -ballBody.velocity.x * 0.8,
+                y: -ballBody.velocity.y * 0.8,
               });
             }
           }
+        }
+
+        // Collision entre balles
+        if (
+          (bodyA.label === "yesBall" || bodyA.label === "noBall") &&
+          (bodyB.label === "yesBall" || bodyB.label === "noBall") &&
+          bodyA.label !== bodyB.label
+        ) {
+          this.collisionHandlers.onBallBallCollision();
         }
       });
     });
@@ -229,51 +238,35 @@ class PhysicsEngine {
 
     Matter.Engine.update(this.engine, deltaTime);
 
-    // Mettre à jour la rotation des segments des cercles
+    // Mettre à jour la rotation des segments des cercles de manière fluide
     this.state.circles.forEach((circle, circleIndex) => {
       if (!circle.isExploding) {
-        // Calculer la rotation cyclique de la même manière que dans SemiCircle.tsx
-        const rotationPeriod = 1 / GAME_CONFIG.SPIRAL_ROTATION_SPEED; // Période en secondes
-        const timeInSeconds = (frame / GAME_CONFIG.FPS) % rotationPeriod;
-        const rotationProgress = timeInSeconds / rotationPeriod; // 0 à 1
+        const timeInSeconds = frame / GAME_CONFIG.FPS;
         const baseRotation = (circleIndex * 360) / GAME_CONFIG.SPIRAL_DENSITY;
-        const rotation = rotationProgress * 360; // Convertir en degrés
-        const totalRotation =
-          ((rotation + baseRotation) % 360) * (Math.PI / 180); // Convertir en radians
+        const currentRotation =
+          (baseRotation +
+            timeInSeconds * GAME_CONFIG.SPIRAL_ROTATION_SPEED * 360) %
+          360;
+        const totalRotation = (currentRotation * Math.PI) / 180;
 
-        // Log de débogage pour la physique
-        if (frame % 30 === 0 && circleIndex === 0) {
-          console.log("--- Debug Physics Rotation ---");
-          console.log("Frame:", frame);
-          console.log("Time in seconds:", timeInSeconds);
-          console.log("Rotation Period:", rotationPeriod);
-          console.log("Rotation Progress:", rotationProgress);
-          console.log("Base Rotation:", baseRotation);
-          console.log("Current Rotation:", rotation);
-          console.log(
-            "Total Rotation (degrees):",
-            (totalRotation * 180) / Math.PI,
-          );
-          console.log("Delta Time:", deltaTime);
-          console.log("------------------");
-        }
+        const centerX = GAME_CONFIG.VIDEO_WIDTH / 2;
+        const centerY = GAME_CONFIG.VIDEO_HEIGHT / 2;
 
-        circle.segments.forEach((segment) => {
+        circle.segments.forEach((segment, segmentIndex) => {
           const radius = Math.sqrt(
-            Math.pow(segment.position.x - GAME_CONFIG.VIDEO_WIDTH / 2, 2) +
-              Math.pow(segment.position.y - GAME_CONFIG.VIDEO_HEIGHT / 2, 2),
+            Math.pow(segment.position.x - centerX, 2) +
+              Math.pow(segment.position.y - centerY, 2),
           );
+
+          const segmentAngle = (segmentIndex * 360) / circle.segments.length;
+          const radians = ((segmentAngle + currentRotation) * Math.PI) / 180;
 
           Matter.Body.setPosition(segment, {
-            x:
-              GAME_CONFIG.VIDEO_WIDTH / 2 +
-              radius * Math.cos(segment.angle + totalRotation),
-            y:
-              GAME_CONFIG.VIDEO_HEIGHT / 2 +
-              radius * Math.sin(segment.angle + totalRotation),
+            x: centerX + radius * Math.cos(radians),
+            y: centerY + radius * Math.sin(radians),
           });
 
-          Matter.Body.setAngle(segment, segment.angle + totalRotation);
+          Matter.Body.setAngle(segment, radians);
         });
       }
     });
