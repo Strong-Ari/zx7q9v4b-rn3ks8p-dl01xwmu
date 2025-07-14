@@ -5,26 +5,26 @@ export const GAME_CONFIG = {
   FPS: 30, // Changé à 30 FPS
   DURATION_IN_SECONDS: 61, // 1 minute et 1 seconde
 
-  // Configuration des balles
+  // Configuration des balles - Paramètres optimisés
   BALL_RADIUS: 35,
-  BALL_SPEED: 5,
-  TRAIL_LENGTH: 12,
+  BALL_SPEED: 6, // Augmenté légèrement pour plus de dynamisme
+  TRAIL_LENGTH: 15, // Augmenté pour des traînées plus visibles
   BALL_MASS: 1,
-  BALL_FRICTION: 0.99,
-  BALL_ELASTICITY: 0.8,
-  BALL_MIN_SPEED: 3,
-  BALL_MAX_SPEED: 12,
-  INITIAL_CIRCLE_RADIUS: 150, // Réduit pour éviter les collisions initiales
+  BALL_FRICTION: 0.995, // Augmenté pour une friction plus réaliste
+  BALL_ELASTICITY: 0.9, // Augmenté pour des rebonds plus énergiques
+  BALL_MIN_SPEED: 2, // Réduit pour permettre des mouvements plus lents
+  BALL_MAX_SPEED: 15, // Augmenté pour plus d'intensité
+  INITIAL_CIRCLE_RADIUS: 120, // Réduit pour plus d'espace de mouvement initial
 
-  // Configuration des cercles
-  MIN_CIRCLE_RADIUS: 280, // Augmenté pour laisser plus d'espace au centre
-  MAX_CIRCLE_RADIUS: 520, // Augmenté pour plus d'anneaux
-  CIRCLE_GAP_MIN_ANGLE: 40, // degrés
-  CIRCLE_GAP_MAX_ANGLE: 50, // degrés
-  CIRCLE_SPACING: 40, // Réduit pour plus d'anneaux
-  CIRCLE_STROKE_WIDTH: 10, // Réduit pour un look plus fin
-  SPIRAL_ROTATION_SPEED: 0.05, // Réduit à 0.05 rotations par seconde (un tour complet en 20 secondes)
-  SPIRAL_DENSITY: 12, // Augmenté pour plus d'anneaux
+  // Configuration des cercles - Paramètres optimisés
+  MIN_CIRCLE_RADIUS: 250, // Réduit pour plus d'espace central
+  MAX_CIRCLE_RADIUS: 500, // Légèrement réduit pour un meilleur équilibre
+  CIRCLE_GAP_MIN_ANGLE: 35, // Réduit pour des ouvertures plus petites (plus difficile)
+  CIRCLE_GAP_MAX_ANGLE: 45, // Réduit pour plus de défi
+  CIRCLE_SPACING: 35, // Réduit pour plus d'anneaux
+  CIRCLE_STROKE_WIDTH: 8, // Réduit pour un look plus élégant
+  SPIRAL_ROTATION_SPEED: 0.08, // Augmenté légèrement pour plus de mouvement
+  SPIRAL_DENSITY: 15, // Augmenté pour plus d'anneaux
   CIRCLE_GRADIENT_START: "#4ade80",
   CIRCLE_GRADIENT_END: "#22d3ee",
 
