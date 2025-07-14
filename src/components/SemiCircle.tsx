@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { interpolate, useCurrentFrame, useVideoConfig } from "remotion";
 import { GAME_CONFIG } from "../constants/game";
 
@@ -6,54 +6,48 @@ interface SemiCircleProps {
   radius: number;
   gapAngle: number;
   gapRotation: number;
+  baseRotation: number;
   isExploding: boolean;
   explosionColor: string;
-  baseRotation: number;
 }
 
 export const SemiCircle: React.FC<SemiCircleProps> = ({
   radius,
   gapAngle,
   gapRotation,
+  baseRotation,
   isExploding,
   explosionColor,
-  baseRotation,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  // Calculer la rotation cyclique
-  const rotationPeriod = 1 / GAME_CONFIG.SPIRAL_ROTATION_SPEED; // Période en secondes
-  const timeInSeconds = (frame / fps) % rotationPeriod;
-  const rotationProgress = timeInSeconds / rotationPeriod; // 0 à 1
-  const rotation = rotationProgress * 360; // Convertir en degrés
+  // Calculer la position de base de l'anneau
+  const ringPosition = baseRotation * (radius / GAME_CONFIG.MAX_CIRCLE_RADIUS);
 
-  // Calculer la rotation totale
-  const totalRotation = (rotation + baseRotation) % 360; // Utiliser modulo pour éviter l'accumulation
+  // Calculer une rotation lente basée sur la position de l'anneau
+  const baseSpeed = 0.5; // Vitesse de base en degrés par frame
+  const speedMultiplier =
+    1 -
+    (radius - GAME_CONFIG.MIN_CIRCLE_RADIUS) /
+      (GAME_CONFIG.MAX_CIRCLE_RADIUS - GAME_CONFIG.MIN_CIRCLE_RADIUS);
 
-  // Logs pour déboguer la rotation
-  useEffect(() => {
-    if (frame % 30 === 0) {
-      console.log("--- Debug Visual Rotation ---");
-      console.log("Frame:", frame);
-      console.log("FPS:", fps);
-      console.log("Time in seconds:", timeInSeconds);
-      console.log("Rotation Period:", rotationPeriod);
-      console.log("Rotation Progress:", rotationProgress);
-      console.log("Base Rotation:", baseRotation);
-      console.log("Current Rotation:", rotation);
-      console.log("Total Rotation:", totalRotation);
-      console.log("------------------");
-    }
-  }, [
+  // Les anneaux extérieurs tournent plus lentement que les anneaux intérieurs
+  const rotationSpeed = baseSpeed * (0.5 + speedMultiplier * 0.5);
+
+  // Calculer la rotation actuelle
+  const currentRotation = (frame * rotationSpeed + ringPosition) % 360;
+
+  // Appliquer une rotation douce
+  const smoothedRotation = interpolate(
     frame,
-    fps,
-    timeInSeconds,
-    rotationPeriod,
-    baseRotation,
-    rotation,
-    totalRotation,
-  ]);
+    [0, fps],
+    [currentRotation, currentRotation + rotationSpeed],
+    {
+      extrapolateRight: "clamp",
+      easing: (t) => 1 - Math.pow(1 - t, 3), // Easing cubique pour une rotation plus naturelle
+    },
+  );
 
   // Animation d'explosion
   const explosionProgress = isExploding
@@ -70,66 +64,88 @@ export const SemiCircle: React.FC<SemiCircleProps> = ({
     ? interpolate(explosionProgress, [0, 0.7, 1], [1, 0.5, 0])
     : 1;
 
-  // Calculer l'épaisseur progressive du trait
-  const progressiveStrokeWidth = interpolate(
+  // Créer le chemin de l'arc
+  const createArcPath = () => {
+    const segments = 36; // Nombre de segments pour créer l'arc
+    const points: string[] = [];
+    const gap = gapAngle / 2;
+
+    for (let i = 0; i <= segments; i++) {
+      const angle = (i / segments) * (360 - gapAngle) + gap;
+      const radian = (angle * Math.PI) / 180;
+      const x = radius * Math.cos(radian);
+      const y = radius * Math.sin(radian);
+
+      if (i === 0) {
+        points.push(`M ${x} ${y}`);
+      } else {
+        points.push(`L ${x} ${y}`);
+      }
+    }
+
+    return points.join(" ");
+  };
+
+  // Effet de brillance
+  const glowEffect = isExploding ? "url(#explosion-glow)" : "url(#ring-glow)";
+  const strokeWidth = interpolate(
     radius,
     [GAME_CONFIG.MIN_CIRCLE_RADIUS, GAME_CONFIG.MAX_CIRCLE_RADIUS],
     [
-      GAME_CONFIG.CIRCLE_STROKE_WIDTH * 1.5,
-      GAME_CONFIG.CIRCLE_STROKE_WIDTH * 0.5,
+      GAME_CONFIG.CIRCLE_STROKE_WIDTH * 1.2,
+      GAME_CONFIG.CIRCLE_STROKE_WIDTH * 0.8,
     ],
   );
-
-  // Créer le chemin de l'arc
-  const startAngle = gapRotation;
-  const endAngle = startAngle + (360 - gapAngle);
-
-  const createArcPath = (
-    radius: number,
-    startAngle: number,
-    endAngle: number,
-  ) => {
-    const start = {
-      x: radius * Math.cos((startAngle * Math.PI) / 180),
-      y: radius * Math.sin((startAngle * Math.PI) / 180),
-    };
-    const end = {
-      x: radius * Math.cos((endAngle * Math.PI) / 180),
-      y: radius * Math.sin((endAngle * Math.PI) / 180),
-    };
-    const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
-
-    return `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${end.x} ${end.y}`;
-  };
-
-  // Créer un ID unique pour le dégradé
-  const gradientId = `gradient-${radius}`;
 
   return (
     <g
       transform={`
         translate(${GAME_CONFIG.VIDEO_WIDTH / 2} ${GAME_CONFIG.VIDEO_HEIGHT / 2})
-        rotate(${totalRotation})
+        rotate(${smoothedRotation})
         scale(${scale})
       `}
       style={{ opacity }}
     >
       <defs>
-        <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
+        <linearGradient
+          id={`ring-gradient-${radius}`}
+          x1="0%"
+          y1="0%"
+          x2="100%"
+          y2="0%"
+        >
           <stop offset="0%" stopColor={GAME_CONFIG.CIRCLE_GRADIENT_START} />
           <stop offset="100%" stopColor={GAME_CONFIG.CIRCLE_GRADIENT_END} />
         </linearGradient>
+        <filter id="ring-glow">
+          <feGaussianBlur stdDeviation="2" />
+          <feColorMatrix
+            type="matrix"
+            values="0 0 0 0 0.2
+                    0 0 0 0 0.8
+                    0 0 0 0 0.4
+                    0 0 0 1 0"
+          />
+        </filter>
+        <filter id="explosion-glow">
+          <feGaussianBlur stdDeviation="4" />
+          <feColorMatrix
+            type="matrix"
+            values="0 0 0 0 1
+                    0 0 0 0 0.5
+                    0 0 0 0 0
+                    0 0 0 1 0"
+          />
+        </filter>
       </defs>
       <path
-        d={createArcPath(radius, startAngle, endAngle)}
-        stroke={isExploding ? explosionColor : `url(#${gradientId})`}
-        strokeWidth={progressiveStrokeWidth}
-        fill="none"
+        d={createArcPath()}
+        stroke={isExploding ? explosionColor : `url(#ring-gradient-${radius})`}
+        strokeWidth={strokeWidth}
         strokeLinecap="round"
-        filter="url(#glow)"
+        fill="none"
+        filter={glowEffect}
       />
     </g>
   );
 };
-
-export default SemiCircle;

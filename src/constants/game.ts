@@ -14,17 +14,17 @@ export const GAME_CONFIG = {
   BALL_ELASTICITY: 0.8,
   BALL_MIN_SPEED: 3,
   BALL_MAX_SPEED: 12,
-  INITIAL_CIRCLE_RADIUS: 200, // Zone initiale plus grande pour les balles
+  INITIAL_CIRCLE_RADIUS: 150, // Réduit pour éviter les collisions initiales
 
   // Configuration des cercles
-  MIN_CIRCLE_RADIUS: 250,
-  MAX_CIRCLE_RADIUS: 450,
-  CIRCLE_GAP_MIN_ANGLE: 45, // degrés
-  CIRCLE_GAP_MAX_ANGLE: 60, // degrés
-  CIRCLE_SPACING: 80, // Augmenté pour plus d'espacement
-  CIRCLE_STROKE_WIDTH: 15,
-  SPIRAL_ROTATION_SPEED: 0.2, // 0.2 rotations par seconde (un tour complet en 5 secondes)
-  SPIRAL_DENSITY: 8, // Réduit pour moins de cercles et plus d'espacement
+  MIN_CIRCLE_RADIUS: 280, // Augmenté pour laisser plus d'espace au centre
+  MAX_CIRCLE_RADIUS: 520, // Augmenté pour plus d'anneaux
+  CIRCLE_GAP_MIN_ANGLE: 40, // degrés
+  CIRCLE_GAP_MAX_ANGLE: 50, // degrés
+  CIRCLE_SPACING: 40, // Réduit pour plus d'anneaux
+  CIRCLE_STROKE_WIDTH: 10, // Réduit pour un look plus fin
+  SPIRAL_ROTATION_SPEED: 0.05, // Réduit à 0.05 rotations par seconde (un tour complet en 20 secondes)
+  SPIRAL_DENSITY: 12, // Augmenté pour plus d'anneaux
   CIRCLE_GRADIENT_START: "#4ade80",
   CIRCLE_GRADIENT_END: "#22d3ee",
 
