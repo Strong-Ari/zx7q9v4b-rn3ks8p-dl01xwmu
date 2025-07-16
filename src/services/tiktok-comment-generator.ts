@@ -106,11 +106,42 @@ function getRandomComment(): string {
 }
 
 /**
- * Génère un nom de fichier unique basé sur le timestamp
+ * Génère un nom de fichier fixe pour éviter la surcharge du projet
+ * Le fichier sera écrasé à chaque génération
  */
 function generateUniqueFileName(): string {
+  return `tiktok-comment-current.png`;
+}
+
+/**
+ * Génère un nom de fichier avec timestamp pour backup (optionnel)
+ */
+function generateTimestampFileName(): string {
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
   return `tiktok-comment-${timestamp}.png`;
+}
+
+/**
+ * Nettoie les anciens fichiers de commentaires (garde seulement le current)
+ */
+async function cleanupOldComments(): Promise<void> {
+  try {
+    const generatedDir = path.join(process.cwd(), "public", "generated");
+    const files = await fs.readdir(generatedDir);
+    
+    // Supprimer tous les fichiers sauf le current
+    const filesToDelete = files.filter(
+      file => file.startsWith("tiktok-comment-") && file !== "tiktok-comment-current.png"
+    );
+    
+    for (const file of filesToDelete) {
+      await fs.unlink(path.join(generatedDir, file));
+    }
+    
+    console.log(`🧹 Nettoyage: ${filesToDelete.length} anciens fichiers supprimés`);
+  } catch (error) {
+    console.log("ℹ️ Aucun fichier à nettoyer ou erreur de nettoyage");
+  }
 }
 
 /**
@@ -139,6 +170,9 @@ export async function generateTikTokComment(): Promise<GenerateCommentResult> {
   try {
     console.log("🚀 Démarrage de la génération de commentaire TikTok...");
 
+    // Nettoyer les anciens fichiers
+    await cleanupOldComments();
+
     // Générer des données aléatoires
     const username = getRandomUsername();
     const comment = getRandomComment();
@@ -152,6 +186,7 @@ export async function generateTikTokComment(): Promise<GenerateCommentResult> {
 
     console.log(`📝 Pseudo généré: ${username}`);
     console.log(`💬 Commentaire généré: ${comment}`);
+    console.log(`📁 Fichier de sortie: ${fileName}`);
 
     // Lancer Playwright en mode headless
     browser = await chromium.launch({

@@ -60,3 +60,125 @@
     }
   }
 }
+
+/* Styles existants */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
+/* Styles pour les commentaires TikTok */
+.tiktok-comment {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.tiktok-comment:hover {
+  transform: scale(1.05);
+}
+
+.auto-generated-comment {
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+/* Animation du spinner */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Amélioration des performances pour les vidéos */
+.remotion-video {
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+}
+
+/* Styles pour les éléments de debug */
+.debug-info {
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+/* Optimisations pour les animations fluides */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Styles responsifs pour les commentaires */
+@media (max-width: 768px) {
+  .tiktok-comment {
+    max-width: 90%;
+    font-size: 14px;
+  }
+}
+
+/* Effet de lueur pour les commentaires */
+.tiktok-comment img {
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+}
+
+/* Amélioration du contraste pour la lisibilité */
+.overlay-text {
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(4px);
+}
+
+/* Style pour les indicateurs de statut */
+.status-indicator {
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Animation de fade-in pour les nouveaux commentaires */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.comment-enter {
+  animation: fadeInUp 0.5s ease-out;
+}
+
+/* Styles pour les éléments interactifs */
+.interactive-element {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.interactive-element:hover {
+  opacity: 0.8;
+  transform: translateY(-1px);
+}
+
+/* Optimisations pour le rendu */
+.gpu-accelerated {
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+/* Styles pour les messages d'erreur */
+.error-message {
+  color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.1);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: system-ui, sans-serif;
+}
+
+/* Styles pour les messages de succès */
+.success-message {
+  color: #51cf66;
+  background: rgba(81, 207, 102, 0.1);
+  border: 1px solid rgba(81, 207, 102, 0.3);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: system-ui, sans-serif;
+}
