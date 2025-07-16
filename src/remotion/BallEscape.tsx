@@ -29,7 +29,7 @@ export const BallEscape: React.FC = () => {
 
   // Ajouter un timestamp pour éviter le cache de l'image
   const commentImagePath = useMemo(() => {
-    return `/generated/tiktok-comment-current.png?t=${Date.now()}`;
+    return `/tiktok-comment-current.png?t=${Date.now()}`;
   }, []);
 
   return (

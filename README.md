@@ -20,7 +20,7 @@ Le système génère automatiquement des commentaires TikTok authentiques :
 - **🔄 À chaque rafraîchissement** : Nouveau commentaire à chaque chargement de page
 - **🎲 Contenu aléatoire** : Pseudos et commentaires Gen Z authentiques
 - **📱 Design réaliste** : Images de commentaires TikTok via Playwright
-- **💾 Nom fixe** : Une seule image (`tiktok-comment-current.png`) pour éviter la surcharge
+- **💾 Nom fixe** : Une seule image (`public/tiktok-comment-current.png`) pour éviter la surcharge
 
 ### Interface intuitive
 - Statut de génération en temps réel

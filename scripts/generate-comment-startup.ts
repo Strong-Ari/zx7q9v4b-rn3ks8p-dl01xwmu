@@ -7,11 +7,11 @@ import fs from "fs/promises";
 async function generateCommentStartup() {
   try {
     // Vérifier que le dossier de destination existe
-    const generatedDir = path.join(process.cwd(), "public", "generated");
+    const publicDir = path.join(process.cwd(), "public");
     try {
-      await fs.access(generatedDir);
+      await fs.access(publicDir);
     } catch {
-      await fs.mkdir(generatedDir, { recursive: true });
+      await fs.mkdir(publicDir, { recursive: true });
     }
 
     console.log("🎬 Génération du commentaire TikTok de démarrage...");

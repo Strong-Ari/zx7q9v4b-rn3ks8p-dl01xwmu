@@ -23,14 +23,14 @@ Cette commande :
 L'image générée est automatiquement utilisée dans la composition `BallEscape` :
 - **Fichier modifié** : `src/remotion/BallEscape.tsx`
 - **Composant utilisé** : `TikTokComment` au lieu de `Comment`
-- **Image source** : `/generated/tiktok-comment-current.png`
+- **Image source** : `/tiktok-comment-current.png`
 
 ### 3. Configuration
 
 #### Position et animation :
 ```typescript
 <TikTokComment
-  imagePath="/generated/tiktok-comment-current.png"
+  imagePath="/tiktok-comment-current.png"
   x={0.5}          // Position horizontale (0-1)
   y={0.1}          // Position verticale (0-1)
   scale={1}        // Échelle du commentaire
@@ -57,7 +57,7 @@ L'image générée est automatiquement utilisée dans la composition `BallEscape
    ```
 
 2. **Vérifier l'image** :
-   L'image sera créée dans `public/generated/tiktok-comment-current.png`
+   L'image sera créée dans `public/tiktok-comment-current.png`
 
 3. **Générer la vidéo** :
    ```bash
@@ -115,7 +115,7 @@ Modifiez les propriétés `x` et `y` du composant `TikTokComment` dans `BallEsca
 ## Troubleshooting
 
 ### L'image ne s'affiche pas
-- Vérifiez que l'image existe : `public/generated/tiktok-comment-current.png`
+- Vérifiez que l'image existe : `public/tiktok-comment-current.png`
 - Regénérez l'image : `npm run generate:comment`
 
 ### Erreur Playwright

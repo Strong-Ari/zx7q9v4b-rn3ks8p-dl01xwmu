@@ -158,7 +158,6 @@ export async function generateTikTokComment(): Promise<GenerateCommentResult> {
     const outputPath = path.join(
       process.cwd(),
       "public",
-      "generated",
       fileName,
     );
 
@@ -353,7 +352,7 @@ export async function generateTikTokComment(): Promise<GenerateCommentResult> {
 
     return {
       success: true,
-      imagePath: `/generated/${fileName}`,
+      imagePath: `/${fileName}`,
       username,
       comment,
     };

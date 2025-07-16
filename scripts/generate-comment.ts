@@ -9,13 +9,13 @@ async function generateComment() {
 
   try {
     // Vérifier que le dossier de destination existe
-    const generatedDir = path.join(process.cwd(), "public", "generated");
+    const publicDir = path.join(process.cwd(), "public");
     try {
-      await fs.access(generatedDir);
-      console.log("✅ Dossier generated existant");
+      await fs.access(publicDir);
+      console.log("✅ Dossier public existant");
     } catch {
-      console.log("📁 Création du dossier generated...");
-      await fs.mkdir(generatedDir, { recursive: true });
+      console.log("📁 Création du dossier public...");
+      await fs.mkdir(publicDir, { recursive: true });
     }
 
     console.log("🚀 Génération en cours...\n");
