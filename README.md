@@ -7,9 +7,25 @@ Un générateur de vidéo TikTok stylé qui simule un jeu "Ball Escape Rings" av
 - Animation fluide de deux balles (Yes/No) avec effet de traînée
 - Cercles semi-ouverts dynamiques avec animations d'explosion
 - Sons MIDI réactifs aux collisions
+- **🆕 Génération automatique de commentaires TikTok réalistes**
 - Interface style TikTok avec commentaire, scores et timer
 - Animation de fin stylée
 - Export en MP4/WebM haute qualité
+
+## 🤖 Génération Automatique de Commentaires
+
+Le système génère automatiquement des commentaires TikTok authentiques :
+
+- **🔄 Au démarrage** : Un commentaire est généré automatiquement avec `npm run dev`
+- **🔄 À chaque rafraîchissement** : Nouveau commentaire à chaque chargement de page
+- **🎲 Contenu aléatoire** : Pseudos et commentaires Gen Z authentiques
+- **📱 Design réaliste** : Images de commentaires TikTok via Playwright
+- **💾 Nom fixe** : Une seule image (`tiktok-comment-current.png`) pour éviter la surcharge
+
+### Interface intuitive
+- Statut de génération en temps réel
+- Bouton "Régénérer" pour un nouveau commentaire
+- Affichage du pseudo et commentaire générés
 
 ## 🛠️ Technologies
 

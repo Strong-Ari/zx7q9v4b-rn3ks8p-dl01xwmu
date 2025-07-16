@@ -27,6 +27,11 @@ export const BallEscape: React.FC = () => {
     return gameState.scores.yes > gameState.scores.no ? "yes" : "no";
   }, [gameState.scores, timeLeft]);
 
+  // Ajouter un timestamp pour éviter le cache de l'image
+  const commentImagePath = useMemo(() => {
+    return `/generated/tiktok-comment-current.png?t=${Date.now()}`;
+  }, []);
+
   return (
     <AbsoluteFill
       style={{
@@ -35,7 +40,7 @@ export const BallEscape: React.FC = () => {
     >
       {/* Interface utilisateur */}
       <TikTokComment
-        imagePath="/generated/tiktok-comment-current.png"
+        imagePath={commentImagePath}
         x={0.5}
         y={0.1}
         scale={1}

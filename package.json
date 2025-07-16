@@ -47,6 +47,7 @@
     "typescript": "5.8.2"
   },
   "scripts": {
+    "predev": "npx tsx scripts/generate-comment-startup.ts",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -55,6 +56,7 @@
     "render": "remotion render",
     "deploy": "node deploy.mjs",
     "test:tiktok": "tsx scripts/test-tiktok-generator.ts",
-    "generate:comment": "npx tsx scripts/generate-comment.ts"
+    "generate:comment": "npx tsx scripts/generate-comment.ts",
+    "generate:startup": "npx tsx scripts/generate-comment-startup.ts"
   }
 }
