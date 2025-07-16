@@ -8,4 +8,7 @@ import { webpackOverride } from "./src/remotion/webpack-override.mjs";
 
 Config.setVideoImageFormat("jpeg");
 
+// Configure static asset handling
+Config.setPublicDir("public");
+
 Config.overrideWebpackConfig(webpackOverride);
