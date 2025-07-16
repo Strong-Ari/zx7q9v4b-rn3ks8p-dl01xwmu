@@ -271,9 +271,8 @@ class PhysicsEngine {
         const timeInSeconds = frame / GAME_CONFIG.FPS + timeOffset;
         const baseRotation = (circleIndex * 360) / GAME_CONFIG.SPIRAL_DENSITY;
         const currentRotation =
-          (baseRotation +
-            timeInSeconds * GAME_CONFIG.SPIRAL_ROTATION_SPEED * 360) %
-          360;
+          baseRotation +
+          timeInSeconds * GAME_CONFIG.SPIRAL_ROTATION_SPEED * 360;
         const totalRotation = (currentRotation * Math.PI) / 180;
 
         const centerX = GAME_CONFIG.VIDEO_WIDTH / 2;

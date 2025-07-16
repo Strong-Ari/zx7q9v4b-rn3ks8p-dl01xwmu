@@ -28,8 +28,7 @@ export const SemiCircle: React.FC<SemiCircleProps> = ({
 
   const timeInSeconds = frame / fps;
   const currentRotation =
-    (baseRotation + timeInSeconds * GAME_CONFIG.SPIRAL_ROTATION_SPEED * 360) %
-    360;
+    baseRotation + timeInSeconds * GAME_CONFIG.SPIRAL_ROTATION_SPEED * 360;
 
   const createArcPath = () => {
     const segments = 36;
