@@ -8,6 +8,7 @@
     "url": "https://mohitya.dev"
   },
   "dependencies": {
+    "@playwright/test": "^1.54.1",
     "@remotion/bundler": "4.0.323",
     "@remotion/cli": "4.0.323",
     "@remotion/google-fonts": "4.0.323",
@@ -20,6 +21,7 @@
     "clsx": "2.1.1",
     "matter-js": "^0.20.0",
     "next": "15.2.4",
+    "playwright": "^1.54.1",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "remotion": "4.0.323",
@@ -41,6 +43,7 @@
     "postcss": "8.4.47",
     "prettier": "3.3.3",
     "tailwindcss": "4.0.3",
+    "tsx": "^4.20.3",
     "typescript": "5.8.2"
   },
   "scripts": {
@@ -50,6 +53,8 @@
     "lint": "next lint",
     "remotion": "remotion studio",
     "render": "remotion render",
-    "deploy": "node deploy.mjs"
+    "deploy": "node deploy.mjs",
+    "test:tiktok": "tsx scripts/test-tiktok-generator.ts",
+    "generate:comment": "tsx scripts/test-tiktok-generator.ts"
   }
 }
