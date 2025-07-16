@@ -1,4 +1,9 @@
-import { AbsoluteFill, useCurrentFrame, useVideoConfig } from "remotion";
+import {
+  AbsoluteFill,
+  useCurrentFrame,
+  useVideoConfig,
+  staticFile,
+} from "remotion";
 import { GAME_CONFIG } from "../constants/game";
 import { useMemo } from "react";
 import { Ball } from "../components/Ball";
@@ -27,8 +32,8 @@ export const BallEscape: React.FC = () => {
     return gameState.scores.yes > gameState.scores.no ? "yes" : "no";
   }, [gameState.scores, timeLeft]);
 
-  // Chemin direct vers l'image du commentaire pour Remotion
-  const commentImagePath = "/tiktok-comment-current.png";
+  // Utiliser staticFile pour charger l'image dans Remotion Studio
+  const commentImagePath = staticFile("tiktok-comment-current.png");
 
   return (
     <AbsoluteFill
@@ -39,12 +44,12 @@ export const BallEscape: React.FC = () => {
       {/* Interface utilisateur */}
       <TikTokComment
         imagePath={commentImagePath}
-        x={0.5}
-        y={0.1}
-        scale={1}
+        x={0.1}
+        y={0.04}
+        scale={0.9}
         startFrame={0}
-        animationType="fadeIn"
-        animationDuration={30}
+        animationType="bounceIn"
+        animationDuration={20}
       />
       <Scoreboard
         yesScore={gameState.scores.yes}
