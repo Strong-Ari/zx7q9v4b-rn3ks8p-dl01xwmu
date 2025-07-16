@@ -106,11 +106,23 @@ function getRandomComment(): string {
 }
 
 /**
- * Génère un nom de fichier unique basé sur le timestamp
+ * Génère un nom de fichier fixe pour éviter la surcharge du repo
  */
 function generateUniqueFileName(): string {
-  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-  return `tiktok-comment-${timestamp}.png`;
+  return `tiktok-comment-current.png`;
+}
+
+/**
+ * Supprime l'ancienne image s'elle existe
+ */
+async function removeOldImage(filePath: string): Promise<void> {
+  try {
+    await fs.access(filePath);
+    await fs.unlink(filePath);
+    console.log("🗑️ Ancienne image supprimée");
+  } catch (error) {
+    // Le fichier n'existe pas, c'est normal
+  }
 }
 
 /**
@@ -152,6 +164,9 @@ export async function generateTikTokComment(): Promise<GenerateCommentResult> {
 
     console.log(`📝 Pseudo généré: ${username}`);
     console.log(`💬 Commentaire généré: ${comment}`);
+
+    // Supprimer l'ancienne image s'elle existe
+    await removeOldImage(outputPath);
 
     // Lancer Playwright en mode headless
     browser = await chromium.launch({

@@ -55,6 +55,6 @@
     "render": "remotion render",
     "deploy": "node deploy.mjs",
     "test:tiktok": "tsx scripts/test-tiktok-generator.ts",
-    "generate:comment": "tsx scripts/test-tiktok-generator.ts"
+    "generate:comment": "npx tsx scripts/generate-comment.ts"
   }
 }

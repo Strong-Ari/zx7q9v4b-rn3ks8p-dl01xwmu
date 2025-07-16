@@ -3,7 +3,8 @@ import { GAME_CONFIG } from "../constants/game";
 import { useMemo } from "react";
 import { Ball } from "../components/Ball";
 import { SemiCircle } from "../components/SemiCircle";
-import { Comment, Scoreboard, Timer } from "../components/UI";
+import { Scoreboard, Timer } from "../components/UI";
+import { TikTokComment } from "./TikTokComment/TikTokComment";
 import { WinnerAnimation } from "../components/WinnerAnimation";
 import { useMidiPlayer } from "../hooks/useMidiPlayer";
 import { usePhysics } from "../hooks/usePhysics";
@@ -33,7 +34,15 @@ export const BallEscape: React.FC = () => {
       }}
     >
       {/* Interface utilisateur */}
-      <Comment />
+      <TikTokComment
+        imagePath="/generated/tiktok-comment-current.png"
+        x={0.5}
+        y={0.1}
+        scale={1}
+        startFrame={0}
+        animationType="fadeIn"
+        animationDuration={30}
+      />
       <Scoreboard
         yesScore={gameState.scores.yes}
         noScore={gameState.scores.no}
