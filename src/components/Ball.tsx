@@ -26,31 +26,39 @@ export const Ball: React.FC<BallProps> = ({
   const color =
     type === "yes" ? GAME_CONFIG.COLORS.YES_BALL : GAME_CONFIG.COLORS.NO_BALL;
 
-  // Animation de pulsation simple
-  const scale = interpolate(Math.sin(frame * 0.1), [-1, 1], [0.95, 1.05]);
+  // FIX: Animation de pulsation plus subtile pour réduire les saccades
+  const scale = interpolate(
+    Math.sin(frame * 0.05), // Fréquence réduite de moitié
+    [-1, 1], 
+    [0.98, 1.02]  // Amplitude réduite
+  );
 
-  // Rendu de la traînée simple et proportionnée
+  // FIX: Traînée optimisée - réduire le nombre d'éléments pour de meilleures performances
   const renderTrail = () => {
     if (trail.length < 2) return null;
 
-    return trail.map((pos, index) => {
-      // Assurer que l'interpolation a toujours une plage croissante
-      const progress = trail.length > 1 ? index / (trail.length - 1) : 0;
-      const opacity = interpolate(progress, [0, 1], [0.6, 0]);
-      const trailScale = interpolate(progress, [0, 1], [0.8, 0.3]);
+    // Limiter le nombre d'éléments de traînée pour les performances
+    const maxTrailElements = 8;
+    const step = Math.max(1, Math.floor(trail.length / maxTrailElements));
+    
+    return trail
+      .filter((_, index) => index % step === 0)
+      .map((pos, index, filteredTrail) => {
+        const progress = filteredTrail.length > 1 ? index / (filteredTrail.length - 1) : 0;
+        const opacity = interpolate(progress, [0, 1], [0.5, 0]); // Réduire l'opacité max
+        const trailScale = interpolate(progress, [0, 1], [0.7, 0.2]); // Réduire la taille
 
-      return (
-        <circle
-          key={index}
-          cx={pos.x}
-          cy={pos.y}
-          r={GAME_CONFIG.BALL_RADIUS * trailScale}
-          fill={color}
-          opacity={opacity}
-          filter="url(#glow)"
-        />
-      );
-    });
+        return (
+          <circle
+            key={`trail-${index}`}
+            cx={pos.x}
+            cy={pos.y}
+            r={GAME_CONFIG.BALL_RADIUS * trailScale}
+            fill={color}
+            opacity={opacity}
+          />
+        );
+      });
   };
 
   return (

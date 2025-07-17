@@ -20,19 +20,18 @@ class PhysicsEngine {
     onBallCircleCollision: (ballId: string, circleId: number) => void;
     onBallBallCollision: () => void;
   };
-  private lastFrameTime: number = 0;
   private frameCount: number = 0;
 
   constructor(
     onBallCircleCollision: (ballId: string, circleId: number) => void,
     onBallBallCollision: () => void,
   ) {
-    // Créer le moteur physique avec des paramètres optimisés pour la précision
+    // FIX: Moteur physique optimisé pour Remotion - équilibre précision/performance
     this.engine = Matter.Engine.create({
       gravity: { x: 0, y: 0.5 },
-      constraintIterations: 12, // Augmenté pour plus de précision
-      positionIterations: 16, // Augmenté pour plus de précision
-      velocityIterations: 12, // Augmenté pour plus de précision
+      constraintIterations: 8,  // FIX: Réduire pour de meilleures performances
+      positionIterations: 10,   // FIX: Réduire pour de meilleures performances
+      velocityIterations: 8,    // FIX: Réduire pour de meilleures performances
       timing: {
         timeScale: 1,
       },
@@ -154,12 +153,12 @@ class PhysicsEngine {
       GAME_CONFIG.BALL_RADIUS,
       {
         label: "yesBall",
-        friction: 0.01,
-        frictionAir: 0.001,
-        restitution: 0.8,
+        friction: 0.005,        // FIX: Réduire friction pour plus de fluidité
+        frictionAir: 0.0005,    // FIX: Réduire friction air
+        restitution: 0.85,      // FIX: Rebonds plus naturels
         mass: 1,
-        density: 0.001,
-        slop: 0.01, // Réduire la tolérance de chevauchement
+        density: 0.0005,        // FIX: Densité plus faible
+        slop: 0.05,             // FIX: Tolérance plus large pour éviter les accrochages
         inertia: Infinity,
         collisionFilter: {
           category: 0x0002,
@@ -174,12 +173,12 @@ class PhysicsEngine {
       GAME_CONFIG.BALL_RADIUS,
       {
         label: "noBall",
-        friction: 0.01,
-        frictionAir: 0.001,
-        restitution: 0.8,
+        friction: 0.005,        // FIX: Réduire friction pour plus de fluidité
+        frictionAir: 0.0005,    // FIX: Réduire friction air
+        restitution: 0.85,      // FIX: Rebonds plus naturels
         mass: 1,
-        density: 0.001,
-        slop: 0.01, // Réduire la tolérance de chevauchement
+        density: 0.0005,        // FIX: Densité plus faible
+        slop: 0.05,             // FIX: Tolérance plus large pour éviter les accrochages
         inertia: Infinity,
         collisionFilter: {
           category: 0x0002,
@@ -254,50 +253,16 @@ class PhysicsEngine {
   }
 
   public update(frame: number) {
-    const currentTime = frame * (1000 / GAME_CONFIG.FPS);
-    const deltaTime = this.lastFrameTime
-      ? currentTime - this.lastFrameTime
-      : 1000 / GAME_CONFIG.FPS;
-    this.lastFrameTime = currentTime;
+    // FIX: Delta time fixe pour cohérence Remotion (33.33ms à 30fps)
+    const deltaTime = 1000 / GAME_CONFIG.FPS;
     this.frameCount = frame;
 
     Matter.Engine.update(this.engine, deltaTime);
 
-    // Mettre à jour la rotation des segments des cercles de manière fluide
-    this.state.circles.forEach((circle, circleIndex) => {
-      if (!circle.isExploding) {
-        // Ajouter une légère compensation pour le délai de rendu (1/4 de frame)
-        const timeOffset = 1 / (GAME_CONFIG.FPS * 4);
-        const timeInSeconds = frame / GAME_CONFIG.FPS + timeOffset;
-        const baseRotation = (circleIndex * 360) / GAME_CONFIG.SPIRAL_DENSITY;
-        const currentRotation =
-          baseRotation +
-          timeInSeconds * GAME_CONFIG.SPIRAL_ROTATION_SPEED * 360;
-        const totalRotation = (currentRotation * Math.PI) / 180;
+    // FIX: Supprimer la mise à jour manuelle des segments - géré par SemiCircle.tsx
+    // Les segments restent statiques, la rotation est purement visuelle
 
-        const centerX = GAME_CONFIG.VIDEO_WIDTH / 2;
-        const centerY = GAME_CONFIG.VIDEO_HEIGHT / 2;
-
-        circle.segments.forEach((segment, segmentIndex) => {
-          const radius = Math.sqrt(
-            Math.pow(segment.position.x - centerX, 2) +
-              Math.pow(segment.position.y - centerY, 2),
-          );
-
-          const segmentAngle = (segmentIndex * 360) / circle.segments.length;
-          const radians = ((segmentAngle + currentRotation) * Math.PI) / 180;
-
-          Matter.Body.setPosition(segment, {
-            x: centerX + radius * Math.cos(radians),
-            y: centerY + radius * Math.sin(radians),
-          });
-
-          Matter.Body.setAngle(segment, radians);
-        });
-      }
-    });
-
-    // Appliquer les contraintes de vitesse aux balles
+    // FIX: Contraintes de vitesse simplifiées et plus stables
     const bodies = [this.state.yesBall, this.state.noBall];
     bodies.forEach((body) => {
       const velocity = body.velocity;
@@ -305,20 +270,15 @@ class PhysicsEngine {
         velocity.x * velocity.x + velocity.y * velocity.y,
       );
 
-      // Ajuster la vitesse en fonction du temps écoulé
-      const timeProgress =
-        frame / (GAME_CONFIG.DURATION_IN_SECONDS * GAME_CONFIG.FPS);
-      const speedMultiplier = 1 + timeProgress * 0.5; // Augmentation progressive de la vitesse
-
-      // Appliquer les limites de vitesse
-      if (speed < GAME_CONFIG.BALL_MIN_SPEED * speedMultiplier) {
-        const factor = (GAME_CONFIG.BALL_MIN_SPEED * speedMultiplier) / speed;
+      // Limites de vitesse fixes (pas de progression temporelle)
+      if (speed < GAME_CONFIG.BALL_MIN_SPEED && speed > 0) {
+        const factor = GAME_CONFIG.BALL_MIN_SPEED / speed;
         Matter.Body.setVelocity(body, {
           x: velocity.x * factor,
           y: velocity.y * factor,
         });
-      } else if (speed > GAME_CONFIG.BALL_MAX_SPEED * speedMultiplier) {
-        const factor = (GAME_CONFIG.BALL_MAX_SPEED * speedMultiplier) / speed;
+      } else if (speed > GAME_CONFIG.BALL_MAX_SPEED) {
+        const factor = GAME_CONFIG.BALL_MAX_SPEED / speed;
         Matter.Body.setVelocity(body, {
           x: velocity.x * factor,
           y: velocity.y * factor,
