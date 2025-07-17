@@ -1,5 +1,5 @@
-import React from "react";
-import { interpolate, useCurrentFrame, useVideoConfig } from "remotion";
+import React, { useMemo } from "react";
+import { useCurrentFrame } from "remotion";
 import { GAME_CONFIG } from "../constants/game";
 
 interface SemiCircleProps {
@@ -24,13 +24,29 @@ export const SemiCircle: React.FC<SemiCircleProps> = ({
   }
 
   const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
 
-  const timeInSeconds = frame / fps;
-  const currentRotation =
-    baseRotation + timeInSeconds * GAME_CONFIG.SPIRAL_ROTATION_SPEED * 360;
+  // Mémoriser les valeurs constantes
+  const rotationPerFrame = useMemo(() => {
+    return (GAME_CONFIG.SPIRAL_ROTATION_SPEED * 360) / GAME_CONFIG.FPS;
+  }, []);
 
-  const createArcPath = () => {
+  // Mémoriser les calculs de rotation
+  const currentRotation = useMemo(() => {
+    const frameRotation = (frame * rotationPerFrame) % 360; // Normaliser la rotation par frame
+    const normalizedBaseRotation = baseRotation % 360; // Normaliser la rotation de base
+    const totalRotation = (normalizedBaseRotation + frameRotation) % 360; // Normaliser la rotation totale
+
+    // Debug: Logs pour diagnostic (à supprimer après test)
+    if (frame % 60 === 0) {
+      console.log(
+        `[DIAGNOSTIC] Frame: ${frame}, BaseRotation: ${normalizedBaseRotation}, FrameRotation: ${frameRotation}, FinalRotation: ${totalRotation}`,
+      );
+    }
+
+    return totalRotation;
+  }, [frame, baseRotation, rotationPerFrame]);
+
+  const createArcPath = useMemo(() => {
     const segments = 36;
     const points: string[] = [];
     const gap = gapAngle / 2;
@@ -49,7 +65,7 @@ export const SemiCircle: React.FC<SemiCircleProps> = ({
     }
 
     return points.join(" ");
-  };
+  }, [radius, gapAngle]);
 
   const strokeWidth = GAME_CONFIG.CIRCLE_STROKE_WIDTH;
   const filterId = `glow-${radius}`;
@@ -85,7 +101,7 @@ export const SemiCircle: React.FC<SemiCircleProps> = ({
         </filter>
       </defs>
       <path
-        d={createArcPath()}
+        d={createArcPath}
         stroke={`url(#ring-gradient-${radius})`}
         strokeWidth={strokeWidth}
         strokeLinecap="round"

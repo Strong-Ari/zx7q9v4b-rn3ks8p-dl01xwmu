@@ -22,6 +22,7 @@ class PhysicsEngine {
   };
   private lastFrameTime: number = 0;
   private frameCount: number = 0;
+  private readonly MAX_DELTA_TIME = 16.667; // Maximum delta time (ms) pour Matter.js
 
   constructor(
     onBallCircleCollision: (ballId: string, circleId: number) => void,
@@ -30,11 +31,12 @@ class PhysicsEngine {
     // Créer le moteur physique avec des paramètres optimisés pour la précision
     this.engine = Matter.Engine.create({
       gravity: { x: 0, y: 0.5 },
-      constraintIterations: 12, // Augmenté pour plus de précision
-      positionIterations: 16, // Augmenté pour plus de précision
-      velocityIterations: 12, // Augmenté pour plus de précision
+      constraintIterations: 4, // Réduit pour améliorer les performances
+      positionIterations: 8, // Réduit pour améliorer les performances
+      velocityIterations: 6, // Réduit pour améliorer les performances
       timing: {
         timeScale: 1,
+        timestamp: 0,
       },
     });
 
@@ -50,7 +52,7 @@ class PhysicsEngine {
 
     this.state = this.initializeState();
 
-    // Configurer les collisions avec la logique originale
+    // Configurer les collisions
     Matter.Events.on(this.engine, "collisionStart", (event) => {
       event.pairs.forEach((pair) => {
         const { bodyA, bodyB } = pair;
@@ -254,45 +256,50 @@ class PhysicsEngine {
   }
 
   public update(frame: number) {
+    // Calculer le delta temps avec une limite maximale
     const currentTime = frame * (1000 / GAME_CONFIG.FPS);
-    const deltaTime = this.lastFrameTime
+    let deltaTime = this.lastFrameTime
       ? currentTime - this.lastFrameTime
       : 1000 / GAME_CONFIG.FPS;
+
+    // Limiter le delta temps pour éviter les sauts trop grands
+    deltaTime = Math.min(deltaTime, this.MAX_DELTA_TIME);
     this.lastFrameTime = currentTime;
     this.frameCount = frame;
 
+    // Mettre à jour le moteur physique avec le delta temps limité
     Matter.Engine.update(this.engine, deltaTime);
 
-    // Mettre à jour la rotation des segments des cercles de manière fluide
+    // Mettre à jour la rotation des segments des cercles de manière optimisée
+    const timeInSeconds = frame / GAME_CONFIG.FPS;
+    const rotationSpeed = GAME_CONFIG.SPIRAL_ROTATION_SPEED * 360;
+
     this.state.circles.forEach((circle, circleIndex) => {
       if (!circle.isExploding) {
-        // Ajouter une légère compensation pour le délai de rendu (1/4 de frame)
-        const timeOffset = 1 / (GAME_CONFIG.FPS * 4);
-        const timeInSeconds = frame / GAME_CONFIG.FPS + timeOffset;
         const baseRotation = (circleIndex * 360) / GAME_CONFIG.SPIRAL_DENSITY;
         const currentRotation =
-          baseRotation +
-          timeInSeconds * GAME_CONFIG.SPIRAL_ROTATION_SPEED * 360;
-        const totalRotation = (currentRotation * Math.PI) / 180;
-
+          (baseRotation + timeInSeconds * rotationSpeed) % 360;
         const centerX = GAME_CONFIG.VIDEO_WIDTH / 2;
         const centerY = GAME_CONFIG.VIDEO_HEIGHT / 2;
 
-        circle.segments.forEach((segment, segmentIndex) => {
-          const radius = Math.sqrt(
-            Math.pow(segment.position.x - centerX, 2) +
-              Math.pow(segment.position.y - centerY, 2),
-          );
+        // Mettre à jour tous les segments en une seule fois
+        const segmentCount = circle.segments.length;
+        const angleStep = 360 / segmentCount;
 
-          const segmentAngle = (segmentIndex * 360) / circle.segments.length;
-          const radians = ((segmentAngle + currentRotation) * Math.PI) / 180;
+        circle.segments.forEach((segment, segmentIndex) => {
+          const segmentAngle = segmentIndex * angleStep;
+          const totalAngle = ((segmentAngle + currentRotation) * Math.PI) / 180;
+          const radius =
+            GAME_CONFIG.MIN_CIRCLE_RADIUS +
+            (GAME_CONFIG.MAX_CIRCLE_RADIUS - GAME_CONFIG.MIN_CIRCLE_RADIUS) *
+              (circleIndex / (GAME_CONFIG.SPIRAL_DENSITY - 1)) *
+              1.5;
 
           Matter.Body.setPosition(segment, {
-            x: centerX + radius * Math.cos(radians),
-            y: centerY + radius * Math.sin(radians),
+            x: centerX + radius * Math.cos(totalAngle),
+            y: centerY + radius * Math.sin(totalAngle),
           });
-
-          Matter.Body.setAngle(segment, radians);
+          Matter.Body.setAngle(segment, totalAngle);
         });
       }
     });
@@ -308,7 +315,7 @@ class PhysicsEngine {
       // Ajuster la vitesse en fonction du temps écoulé
       const timeProgress =
         frame / (GAME_CONFIG.DURATION_IN_SECONDS * GAME_CONFIG.FPS);
-      const speedMultiplier = 1 + timeProgress * 0.5; // Augmentation progressive de la vitesse
+      const speedMultiplier = 1 + timeProgress * 0.5;
 
       // Appliquer les limites de vitesse
       if (speed < GAME_CONFIG.BALL_MIN_SPEED * speedMultiplier) {
