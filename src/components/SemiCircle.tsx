@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { useCurrentFrame } from "remotion";
+import { useCurrentFrame, interpolate } from "remotion";
 import { GAME_CONFIG } from "../constants/game";
 
 interface SemiCircleProps {
@@ -30,21 +30,27 @@ export const SemiCircle: React.FC<SemiCircleProps> = ({
     return (GAME_CONFIG.SPIRAL_ROTATION_SPEED * 360) / GAME_CONFIG.FPS;
   }, []);
 
-  // Mémoriser les calculs de rotation
+  // Mémoriser les calculs de rotation avec interpolation lisse
   const currentRotation = useMemo(() => {
-    const frameRotation = (frame * rotationPerFrame) % 360; // Normaliser la rotation par frame
-    const normalizedBaseRotation = baseRotation % 360; // Normaliser la rotation de base
-    const totalRotation = (normalizedBaseRotation + frameRotation) % 360; // Normaliser la rotation totale
-
-    // Debug: Logs pour diagnostic (à supprimer après test)
-    if (frame % 60 === 0) {
-      console.log(
-        `[DIAGNOSTIC] Frame: ${frame}, BaseRotation: ${normalizedBaseRotation}, FrameRotation: ${frameRotation}, FinalRotation: ${totalRotation}`,
-      );
-    }
+    // Utilisation de l'interpolation Remotion pour une animation ultra-fluide
+    const normalizedBaseRotation = baseRotation % 360;
+    
+    // Interpolation linéaire continue basée sur le frame
+    const frameRotation = interpolate(
+      frame,
+      [0, GAME_CONFIG.FPS], // Une rotation complète par seconde
+      [0, 360 * GAME_CONFIG.SPIRAL_ROTATION_SPEED],
+      {
+        extrapolateLeft: "clamp",
+        extrapolateRight: "extend"
+      }
+    );
+    
+    // Calcul final avec normalisation
+    const totalRotation = (normalizedBaseRotation + frameRotation) % 360;
 
     return totalRotation;
-  }, [frame, baseRotation, rotationPerFrame]);
+  }, [frame, baseRotation]);
 
   const createArcPath = useMemo(() => {
     const segments = 36;

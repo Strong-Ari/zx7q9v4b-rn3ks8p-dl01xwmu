@@ -28,21 +28,24 @@ class PhysicsEngine {
     onBallCircleCollision: (ballId: string, circleId: number) => void,
     onBallBallCollision: () => void,
   ) {
-    // Créer le moteur physique avec des paramètres optimisés pour la précision
+    // Créer le moteur physique avec des paramètres optimisés pour Remotion
     this.engine = Matter.Engine.create({
       gravity: { x: 0, y: 0.5 },
-      constraintIterations: 4, // Réduit pour améliorer les performances
-      positionIterations: 8, // Réduit pour améliorer les performances
-      velocityIterations: 6, // Réduit pour améliorer les performances
+      constraintIterations: 2, // Optimisé pour Remotion
+      positionIterations: 6, // Optimisé pour Remotion  
+      velocityIterations: 4, // Optimisé pour Remotion
       timing: {
         timeScale: 1,
         timestamp: 0,
       },
     });
 
-    // Ajuster les paramètres de simulation pour plus de stabilité
+    // Ajuster les paramètres pour une meilleure stabilité avec des deltas fixes
     this.engine.world.gravity.scale = 0.001;
     this.engine.timing.timeScale = 1;
+    
+    // Configurer pour des delta times fixes (important pour Remotion)
+    this.engine.enableSleeping = false; // Désactiver le sleep pour plus de fluidité
 
     this.world = this.engine.world;
     this.collisionHandlers = {
@@ -256,19 +259,17 @@ class PhysicsEngine {
   }
 
   public update(frame: number) {
-    // Calculer le delta temps avec une limite maximale
-    const currentTime = frame * (1000 / GAME_CONFIG.FPS);
-    let deltaTime = this.lastFrameTime
-      ? currentTime - this.lastFrameTime
-      : 1000 / GAME_CONFIG.FPS;
-
-    // Limiter le delta temps pour éviter les sauts trop grands
-    deltaTime = Math.min(deltaTime, this.MAX_DELTA_TIME);
-    this.lastFrameTime = currentTime;
+    // Utiliser un delta temps fixe basé sur le FPS pour une consistance maximale
+    const fixedDeltaTime = 1000 / GAME_CONFIG.FPS;
+    
+    // Éviter les mises à jour multiples si le frame n'a pas changé
+    if (this.frameCount === frame) return;
+    
     this.frameCount = frame;
+    this.lastFrameTime = frame * fixedDeltaTime;
 
-    // Mettre à jour le moteur physique avec le delta temps limité
-    Matter.Engine.update(this.engine, deltaTime);
+    // Mettre à jour le moteur physique avec un delta temps fixe et contrôlé
+    Matter.Engine.update(this.engine, Math.min(fixedDeltaTime, this.MAX_DELTA_TIME));
 
     // Mettre à jour la rotation des segments des cercles de manière optimisée
     const timeInSeconds = frame / GAME_CONFIG.FPS;

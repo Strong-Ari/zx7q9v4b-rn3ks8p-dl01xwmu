@@ -131,16 +131,23 @@ export const usePhysics = (
           y: physicsBall.position.y,
         };
 
-        // Calculer la traînée en fonction de la vitesse
-        const speed = Math.sqrt(
-          physicsBall.velocity.x * physicsBall.velocity.x +
-            physicsBall.velocity.y * physicsBall.velocity.y,
-        );
+        // Optimisation: calculer la traînée seulement si la position a vraiment changé
+        const hasPositionChanged = currentBall.trail.length === 0 ||
+          Math.abs(newPosition.x - currentBall.trail[0].x) > 0.1 ||
+          Math.abs(newPosition.y - currentBall.trail[0].y) > 0.1;
+
+        if (!hasPositionChanged) {
+          return currentBall; // Retourner l'état existant si pas de changement significatif
+        }
+
+        // Calculer la traînée en fonction de la vitesse (optimisé)
+        const velocitySquared = physicsBall.velocity.x * physicsBall.velocity.x +
+          physicsBall.velocity.y * physicsBall.velocity.y;
+        const speed = Math.sqrt(velocitySquared);
+        
         const trailLength = Math.min(
           GAME_CONFIG.TRAIL_LENGTH,
-          Math.ceil(
-            (speed / GAME_CONFIG.BALL_SPEED) * GAME_CONFIG.TRAIL_LENGTH,
-          ),
+          Math.max(3, Math.ceil((speed / GAME_CONFIG.BALL_SPEED) * GAME_CONFIG.TRAIL_LENGTH)),
         );
 
         return {
