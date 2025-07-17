@@ -252,15 +252,15 @@ class PhysicsEngine {
     };
   }
 
-  public update(frame: number) {
-    // FIX: Delta time fixe pour cohérence Remotion (33.33ms à 30fps)
-    const deltaTime = 1000 / GAME_CONFIG.FPS;
+  public update(frame: number, substeps: number = 1) {
+    // Sub-stepping pour une physique plus stable
+    const PHYSICS_FPS = GAME_CONFIG.PHYSICS_FPS;
+    const deltaTime = 1000 / PHYSICS_FPS;
     this.frameCount = frame;
 
-    Matter.Engine.update(this.engine, deltaTime);
-
-    // FIX: Supprimer la mise à jour manuelle des segments - géré par SemiCircle.tsx
-    // Les segments restent statiques, la rotation est purement visuelle
+    for (let i = 0; i < substeps; i++) {
+      Matter.Engine.update(this.engine, deltaTime);
+    }
 
     // FIX: Contraintes de vitesse simplifiées et plus stables
     const bodies = [this.state.yesBall, this.state.noBall];

@@ -114,8 +114,13 @@ export const usePhysics = (
   useEffect(() => {
     if (!engineRef.current) return;
 
-    // Mettre à jour le moteur physique avec le numéro de frame
-    engineRef.current.update(frame);
+    // Sub-stepping : nombre de sous-étapes par frame vidéo
+    const PHYSICS_FPS = GAME_CONFIG.PHYSICS_FPS;
+    const VIDEO_FPS = GAME_CONFIG.FPS;
+    const substeps = Math.round(PHYSICS_FPS / VIDEO_FPS);
+
+    // Mettre à jour le moteur physique avec sub-stepping
+    engineRef.current.update(frame, substeps);
 
     // Récupérer l'état actuel
     const physicsState = engineRef.current.getState();

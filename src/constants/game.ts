@@ -3,6 +3,7 @@ export const GAME_CONFIG = {
   VIDEO_WIDTH: 1080,
   VIDEO_HEIGHT: 1920,
   FPS: 30, // Changé à 30 FPS
+  PHYSICS_FPS: 90, // Pour sub-stepping physique (ex: 90Hz)
   DURATION_IN_SECONDS: 61, // 1 minute et 1 seconde
 
   // Configuration des balles - Paramètres optimisés
