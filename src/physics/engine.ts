@@ -20,23 +20,20 @@ class PhysicsEngine {
     onBallCircleCollision: (ballId: string, circleId: number) => void;
     onBallBallCollision: () => void;
   };
-  private lastFrameTime: number = 0;
   private frameCount: number = 0;
-  private readonly MAX_DELTA_TIME = 16.667; // Maximum delta time (ms) pour Matter.js
 
   constructor(
     onBallCircleCollision: (ballId: string, circleId: number) => void,
     onBallBallCollision: () => void,
   ) {
-    // Créer le moteur physique avec des paramètres optimisés pour la précision
+    // FIX: Moteur physique optimisé pour Remotion - équilibre précision/performance
     this.engine = Matter.Engine.create({
       gravity: { x: 0, y: 0.5 },
-      constraintIterations: 4, // Réduit pour améliorer les performances
-      positionIterations: 8, // Réduit pour améliorer les performances
-      velocityIterations: 6, // Réduit pour améliorer les performances
+      constraintIterations: 8, // FIX: Réduire pour de meilleures performances
+      positionIterations: 10, // FIX: Réduire pour de meilleures performances
+      velocityIterations: 8, // FIX: Réduire pour de meilleures performances
       timing: {
         timeScale: 1,
-        timestamp: 0,
       },
     });
 
@@ -52,7 +49,7 @@ class PhysicsEngine {
 
     this.state = this.initializeState();
 
-    // Configurer les collisions
+    // Configurer les collisions avec la logique originale
     Matter.Events.on(this.engine, "collisionStart", (event) => {
       event.pairs.forEach((pair) => {
         const { bodyA, bodyB } = pair;
@@ -156,12 +153,12 @@ class PhysicsEngine {
       GAME_CONFIG.BALL_RADIUS,
       {
         label: "yesBall",
-        friction: 0.01,
-        frictionAir: 0.001,
-        restitution: 0.8,
+        friction: 0.005, // FIX: Réduire friction pour plus de fluidité
+        frictionAir: 0.0005, // FIX: Réduire friction air
+        restitution: 0.85, // FIX: Rebonds plus naturels
         mass: 1,
-        density: 0.001,
-        slop: 0.01, // Réduire la tolérance de chevauchement
+        density: 0.0005, // FIX: Densité plus faible
+        slop: 0.05, // FIX: Tolérance plus large pour éviter les accrochages
         inertia: Infinity,
         collisionFilter: {
           category: 0x0002,
@@ -176,12 +173,12 @@ class PhysicsEngine {
       GAME_CONFIG.BALL_RADIUS,
       {
         label: "noBall",
-        friction: 0.01,
-        frictionAir: 0.001,
-        restitution: 0.8,
+        friction: 0.005, // FIX: Réduire friction pour plus de fluidité
+        frictionAir: 0.0005, // FIX: Réduire friction air
+        restitution: 0.85, // FIX: Rebonds plus naturels
         mass: 1,
-        density: 0.001,
-        slop: 0.01, // Réduire la tolérance de chevauchement
+        density: 0.0005, // FIX: Densité plus faible
+        slop: 0.05, // FIX: Tolérance plus large pour éviter les accrochages
         inertia: Infinity,
         collisionFilter: {
           category: 0x0002,
@@ -256,55 +253,16 @@ class PhysicsEngine {
   }
 
   public update(frame: number) {
-    // Calculer le delta temps avec une limite maximale
-    const currentTime = frame * (1000 / GAME_CONFIG.FPS);
-    let deltaTime = this.lastFrameTime
-      ? currentTime - this.lastFrameTime
-      : 1000 / GAME_CONFIG.FPS;
-
-    // Limiter le delta temps pour éviter les sauts trop grands
-    deltaTime = Math.min(deltaTime, this.MAX_DELTA_TIME);
-    this.lastFrameTime = currentTime;
+    // FIX: Delta time fixe pour cohérence Remotion (33.33ms à 30fps)
+    const deltaTime = 1000 / GAME_CONFIG.FPS;
     this.frameCount = frame;
 
-    // Mettre à jour le moteur physique avec le delta temps limité
     Matter.Engine.update(this.engine, deltaTime);
 
-    // Mettre à jour la rotation des segments des cercles de manière optimisée
-    const timeInSeconds = frame / GAME_CONFIG.FPS;
-    const rotationSpeed = GAME_CONFIG.SPIRAL_ROTATION_SPEED * 360;
+    // FIX: Supprimer la mise à jour manuelle des segments - géré par SemiCircle.tsx
+    // Les segments restent statiques, la rotation est purement visuelle
 
-    this.state.circles.forEach((circle, circleIndex) => {
-      if (!circle.isExploding) {
-        const baseRotation = (circleIndex * 360) / GAME_CONFIG.SPIRAL_DENSITY;
-        const currentRotation =
-          (baseRotation + timeInSeconds * rotationSpeed) % 360;
-        const centerX = GAME_CONFIG.VIDEO_WIDTH / 2;
-        const centerY = GAME_CONFIG.VIDEO_HEIGHT / 2;
-
-        // Mettre à jour tous les segments en une seule fois
-        const segmentCount = circle.segments.length;
-        const angleStep = 360 / segmentCount;
-
-        circle.segments.forEach((segment, segmentIndex) => {
-          const segmentAngle = segmentIndex * angleStep;
-          const totalAngle = ((segmentAngle + currentRotation) * Math.PI) / 180;
-          const radius =
-            GAME_CONFIG.MIN_CIRCLE_RADIUS +
-            (GAME_CONFIG.MAX_CIRCLE_RADIUS - GAME_CONFIG.MIN_CIRCLE_RADIUS) *
-              (circleIndex / (GAME_CONFIG.SPIRAL_DENSITY - 1)) *
-              1.5;
-
-          Matter.Body.setPosition(segment, {
-            x: centerX + radius * Math.cos(totalAngle),
-            y: centerY + radius * Math.sin(totalAngle),
-          });
-          Matter.Body.setAngle(segment, totalAngle);
-        });
-      }
-    });
-
-    // Appliquer les contraintes de vitesse aux balles
+    // FIX: Contraintes de vitesse simplifiées et plus stables
     const bodies = [this.state.yesBall, this.state.noBall];
     bodies.forEach((body) => {
       const velocity = body.velocity;
@@ -312,20 +270,15 @@ class PhysicsEngine {
         velocity.x * velocity.x + velocity.y * velocity.y,
       );
 
-      // Ajuster la vitesse en fonction du temps écoulé
-      const timeProgress =
-        frame / (GAME_CONFIG.DURATION_IN_SECONDS * GAME_CONFIG.FPS);
-      const speedMultiplier = 1 + timeProgress * 0.5;
-
-      // Appliquer les limites de vitesse
-      if (speed < GAME_CONFIG.BALL_MIN_SPEED * speedMultiplier) {
-        const factor = (GAME_CONFIG.BALL_MIN_SPEED * speedMultiplier) / speed;
+      // Limites de vitesse fixes (pas de progression temporelle)
+      if (speed < GAME_CONFIG.BALL_MIN_SPEED && speed > 0) {
+        const factor = GAME_CONFIG.BALL_MIN_SPEED / speed;
         Matter.Body.setVelocity(body, {
           x: velocity.x * factor,
           y: velocity.y * factor,
         });
-      } else if (speed > GAME_CONFIG.BALL_MAX_SPEED * speedMultiplier) {
-        const factor = (GAME_CONFIG.BALL_MAX_SPEED * speedMultiplier) / speed;
+      } else if (speed > GAME_CONFIG.BALL_MAX_SPEED) {
+        const factor = GAME_CONFIG.BALL_MAX_SPEED / speed;
         Matter.Body.setVelocity(body, {
           x: velocity.x * factor,
           y: velocity.y * factor,

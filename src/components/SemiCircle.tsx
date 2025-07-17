@@ -1,5 +1,5 @@
-import React, { useMemo } from "react";
-import { useCurrentFrame } from "remotion";
+import React from "react";
+import { interpolate, useCurrentFrame, useVideoConfig } from "remotion";
 import { GAME_CONFIG } from "../constants/game";
 
 interface SemiCircleProps {
@@ -24,29 +24,22 @@ export const SemiCircle: React.FC<SemiCircleProps> = ({
   }
 
   const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
 
-  // Mémoriser les valeurs constantes
-  const rotationPerFrame = useMemo(() => {
-    return (GAME_CONFIG.SPIRAL_ROTATION_SPEED * 360) / GAME_CONFIG.FPS;
-  }, []);
+  // FIX: Utiliser GAME_CONFIG.FPS pour garantir la cohérence entre preview et export
+  const timeInSeconds = frame / GAME_CONFIG.FPS;
+  const currentRotation =
+    baseRotation + timeInSeconds * GAME_CONFIG.SPIRAL_ROTATION_SPEED * 360;
 
-  // Mémoriser les calculs de rotation
-  const currentRotation = useMemo(() => {
-    const frameRotation = (frame * rotationPerFrame) % 360; // Normaliser la rotation par frame
-    const normalizedBaseRotation = baseRotation % 360; // Normaliser la rotation de base
-    const totalRotation = (normalizedBaseRotation + frameRotation) % 360; // Normaliser la rotation totale
+  // Debug: Logs pour diagnostic (à supprimer après test)
+  if (frame % 60 === 0) {
+    // Log toutes les 60 frames pour éviter le spam
+    console.log(
+      `[DIAGNOSTIC] Frame: ${frame}, FPS Config: ${GAME_CONFIG.FPS}, FPS Video: ${fps}, Rotation: ${currentRotation.toFixed(2)}`,
+    );
+  }
 
-    // Debug: Logs pour diagnostic (à supprimer après test)
-    if (frame % 60 === 0) {
-      console.log(
-        `[DIAGNOSTIC] Frame: ${frame}, BaseRotation: ${normalizedBaseRotation}, FrameRotation: ${frameRotation}, FinalRotation: ${totalRotation}`,
-      );
-    }
-
-    return totalRotation;
-  }, [frame, baseRotation, rotationPerFrame]);
-
-  const createArcPath = useMemo(() => {
+  const createArcPath = () => {
     const segments = 36;
     const points: string[] = [];
     const gap = gapAngle / 2;
@@ -65,7 +58,7 @@ export const SemiCircle: React.FC<SemiCircleProps> = ({
     }
 
     return points.join(" ");
-  }, [radius, gapAngle]);
+  };
 
   const strokeWidth = GAME_CONFIG.CIRCLE_STROKE_WIDTH;
   const filterId = `glow-${radius}`;
@@ -101,7 +94,7 @@ export const SemiCircle: React.FC<SemiCircleProps> = ({
         </filter>
       </defs>
       <path
-        d={createArcPath}
+        d={createArcPath()}
         stroke={`url(#ring-gradient-${radius})`}
         strokeWidth={strokeWidth}
         strokeLinecap="round"
