@@ -57,6 +57,8 @@
     "render": "remotion render",
     "deploy": "node deploy.mjs",
     "test:tiktok": "tsx scripts/test-tiktok-generator.ts",
+    "test:rotation": "npx tsx scripts/test-rotation-timing.ts",
+    "cleanup:debug": "npx tsx scripts/cleanup-debug-logs.ts",
     "generate:comment": "npx tsx scripts/generate-comment.ts",
     "generate:startup": "npx tsx scripts/generate-comment-startup.ts"
   }
