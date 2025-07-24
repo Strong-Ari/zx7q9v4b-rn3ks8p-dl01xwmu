@@ -5,16 +5,16 @@ export const GAME_CONFIG = {
   FPS: 30, // Changé à 30 FPS
   DURATION_IN_SECONDS: 61, // 1 minute et 1 seconde
 
-  // Configuration des balles - Paramètres optimisés
+  // Configuration des balles - Paramètres optimisés pour la fluidité
   BALL_RADIUS: 35,
-  BALL_SPEED: 6, // Augmenté légèrement pour plus de dynamisme
-  TRAIL_LENGTH: 15, // Augmenté pour des traînées plus visibles
+  BALL_SPEED: 5, // FIX: Vitesse réduite pour plus de contrôle
+  TRAIL_LENGTH: 18, // FIX: Augmenté pour des traînées plus visibles et fluides
   BALL_MASS: 1,
-  BALL_FRICTION: 0.995, // Augmenté pour une friction plus réaliste
-  BALL_ELASTICITY: 0.9, // Augmenté pour des rebonds plus énergiques
-  BALL_MIN_SPEED: 2, // Réduit pour permettre des mouvements plus lents
-  BALL_MAX_SPEED: 15, // Augmenté pour plus d'intensité
-  INITIAL_CIRCLE_RADIUS: 120, // Réduit pour plus d'espace de mouvement initial
+  BALL_FRICTION: 0.998, // FIX: Friction optimisée pour la fluidité
+  BALL_ELASTICITY: 0.85, // FIX: Élasticité ajustée pour des rebonds plus naturels
+  BALL_MIN_SPEED: 1.5, // FIX: Vitesse minimum plus basse pour permettre des mouvements plus doux
+  BALL_MAX_SPEED: 12, // FIX: Vitesse maximum réduite pour plus de contrôle
+  INITIAL_CIRCLE_RADIUS: 140, // FIX: Rayon initial optimisé
 
   // Configuration des cercles - Paramètres optimisés pour une meilleure synchronisation
   MIN_CIRCLE_RADIUS: 250, // Réduit pour plus d'espace central
@@ -23,10 +23,13 @@ export const GAME_CONFIG = {
   CIRCLE_GAP_MAX_ANGLE: 50, // Réduit pour plus de défi
   CIRCLE_SPACING: 35, // Réduit pour plus d'anneaux
   CIRCLE_STROKE_WIDTH: 8, // Réduit pour un look plus élégant
-  SPIRAL_ROTATION_SPEED: 0.05, // Vitesse réduite pour une rotation plus lente et fluide
+  SPIRAL_ROTATION_SPEED: 0.04, // FIX: Vitesse encore plus réduite pour une rotation très fluide
   SPIRAL_DENSITY: 15, // Augmenté pour plus d'anneaux
   CIRCLE_GRADIENT_START: "#4ade80",
   CIRCLE_GRADIENT_END: "#22d3ee",
+
+  // Animation
+  WINNER_ANIMATION_DURATION: 90, // Durée de l'animation du gagnant en frames
 
   // Couleurs
   COLORS: {

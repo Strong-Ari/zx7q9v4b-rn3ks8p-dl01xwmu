@@ -33,33 +33,58 @@ export const Ball: React.FC<BallProps> = ({
     [0.98, 1.02], // Amplitude réduite
   );
 
-  // FIX: Traînée optimisée - réduire le nombre d'éléments pour de meilleures performances
+  // FIX: Calculer l'angle de rotation basé sur la vélocité pour que le texte suive le mouvement
+  const rotationAngle = Math.atan2(velocity.y, velocity.x) * (180 / Math.PI);
+
+  // FIX: Traînée optimisée avec ligne continue au lieu de cercles discrets
   const renderTrail = () => {
     if (trail.length < 2) return null;
 
-    // Limiter le nombre d'éléments de traînée pour les performances
-    const maxTrailElements = 8;
-    const step = Math.max(1, Math.floor(trail.length / maxTrailElements));
+    // Créer un chemin SVG pour une traînée fluide
+    const pathData = trail.reduce((path, pos, index) => {
+      if (index === 0) {
+        return `M ${pos.x} ${pos.y}`;
+      }
+      return `${path} L ${pos.x} ${pos.y}`;
+    }, "");
 
-    return trail
-      .filter((_, index) => index % step === 0)
-      .map((pos, index, filteredTrail) => {
-        const progress =
-          filteredTrail.length > 1 ? index / (filteredTrail.length - 1) : 0;
-        const opacity = interpolate(progress, [0, 1], [0.5, 0]); // Réduire l'opacité max
-        const trailScale = interpolate(progress, [0, 1], [0.7, 0.2]); // Réduire la taille
-
-        return (
-          <circle
-            key={`trail-${index}`}
-            cx={pos.x}
-            cy={pos.y}
-            r={GAME_CONFIG.BALL_RADIUS * trailScale}
-            fill={color}
-            opacity={opacity}
-          />
-        );
-      });
+    // Gradient pour la traînée
+    const gradientId = `trail-gradient-${type}`;
+    
+    return (
+      <g>
+        <defs>
+          <linearGradient id={gradientId} gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor={color} stopOpacity="0.6" />
+            <stop offset="50%" stopColor={color} stopOpacity="0.3" />
+            <stop offset="100%" stopColor={color} stopOpacity="0" />
+          </linearGradient>
+          <filter id={`trail-blur-${type}`}>
+            <feGaussianBlur stdDeviation="1" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+          </filter>
+        </defs>
+        <path
+          d={pathData}
+          stroke={`url(#${gradientId})`}
+          strokeWidth={GAME_CONFIG.BALL_RADIUS * 0.8}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+          filter={`url(#trail-blur-${type})`}
+        />
+        {/* Traînée additionnelle plus fine pour plus d'effet */}
+        <path
+          d={pathData}
+          stroke={color}
+          strokeWidth={GAME_CONFIG.BALL_RADIUS * 0.4}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+          opacity={0.4}
+        />
+      </g>
+    );
   };
 
   return (
@@ -80,19 +105,24 @@ export const Ball: React.FC<BallProps> = ({
       {/* Balle principale */}
       <g transform={`translate(${position.x}, ${position.y}) scale(${scale})`}>
         <circle r={GAME_CONFIG.BALL_RADIUS} fill={color} filter="url(#glow)" />
-        <text
-          fill={GAME_CONFIG.COLORS.TEXT_PRIMARY}
-          textAnchor="middle"
-          dominantBaseline="middle"
-          fontSize={GAME_CONFIG.BALL_RADIUS * 0.8}
-          fontWeight="bold"
-          style={{
-            textTransform: "uppercase",
-            fontFamily: "system-ui",
-          }}
-        >
-          {type}
-        </text>
+        
+        {/* FIX: Texte qui tourne avec la direction du mouvement */}
+        <g transform={`rotate(${rotationAngle})`}>
+          <text
+            fill={GAME_CONFIG.COLORS.TEXT_PRIMARY}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fontSize={GAME_CONFIG.BALL_RADIUS * 0.6}
+            fontWeight="bold"
+            style={{
+              textTransform: "uppercase",
+              fontFamily: "system-ui",
+              textShadow: "1px 1px 2px rgba(0,0,0,0.5)",
+            }}
+          >
+            {type}
+          </text>
+        </g>
       </g>
     </g>
   );

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useCurrentFrame } from "remotion";
-import PhysicsEngine, { PhysicsState } from "../physics/engine";
+import PhysicsEngine from "../physics/engine";
 import { GAME_CONFIG } from "../constants/game";
 
 interface Position {
@@ -131,29 +131,30 @@ export const usePhysics = (
           y: physicsBall.position.y,
         };
 
-        // Optimisation: calculer la traînée seulement si la position a vraiment changé
+        // FIX: Calcul de traînée optimisé pour plus de fluidité
         const hasPositionChanged =
           currentBall.trail.length === 0 ||
-          Math.abs(newPosition.x - currentBall.trail[0].x) > 0.1 ||
-          Math.abs(newPosition.y - currentBall.trail[0].y) > 0.1;
+          Math.abs(newPosition.x - currentBall.trail[0].x) > 0.5 ||
+          Math.abs(newPosition.y - currentBall.trail[0].y) > 0.5;
 
         if (!hasPositionChanged) {
           return currentBall; // Retourner l'état existant si pas de changement significatif
         }
 
-        // Calculer la traînée en fonction de la vitesse (optimisé)
+        // FIX: Calcul de vitesse plus précis pour les traînées
         const velocitySquared =
           physicsBall.velocity.x * physicsBall.velocity.x +
           physicsBall.velocity.y * physicsBall.velocity.y;
         const speed = Math.sqrt(velocitySquared);
 
-        const trailLength = Math.min(
-          GAME_CONFIG.TRAIL_LENGTH,
-          Math.max(
-            3,
-            Math.ceil(
-              (speed / GAME_CONFIG.BALL_SPEED) * GAME_CONFIG.TRAIL_LENGTH,
-            ),
+        // FIX: Traînée adaptative basée sur la vitesse avec interpolation plus douce
+        const baseTrailLength = GAME_CONFIG.TRAIL_LENGTH;
+        const speedFactor = Math.min(speed / GAME_CONFIG.BALL_SPEED, 2); // Limiter le facteur
+        const trailLength = Math.max(
+          5, // Minimum pour une traînée visible
+          Math.min(
+            baseTrailLength * 1.5, // Maximum pour les performances
+            Math.ceil(baseTrailLength * (0.5 + speedFactor * 0.5)), // Interpolation plus douce
           ),
         );
 

@@ -1,5 +1,5 @@
 import React from "react";
-import { interpolate, useCurrentFrame, useVideoConfig } from "remotion";
+import { useCurrentFrame, useVideoConfig } from "remotion";
 import { GAME_CONFIG } from "../constants/game";
 
 interface SemiCircleProps {

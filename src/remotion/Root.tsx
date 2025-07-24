@@ -1,4 +1,4 @@
-import { Composition } from "remotion";
+import { Composition, registerRoot } from "remotion";
 import { BallEscape } from "./BallEscape";
 import { GAME_CONFIG } from "../constants/game";
 
@@ -16,5 +16,7 @@ export const RemotionRoot: React.FC = () => {
     </>
   );
 };
+
+registerRoot(RemotionRoot);
 
 export default RemotionRoot;
