@@ -5,13 +5,16 @@ export const GAME_CONFIG = {
   FPS: 30, // Changé à 30 FPS
   DURATION_IN_SECONDS: 61, // 1 minute et 1 seconde
 
-  // Configuration des balles - Paramètres optimisés
+  // Configuration des balles - Paramètres optimisés et corrigés
   BALL_RADIUS: 35,
   BALL_SPEED: 6, // Augmenté légèrement pour plus de dynamisme
-  TRAIL_LENGTH: 15, // Augmenté pour des traînées plus visibles
+  TRAIL_LENGTH: 8, // Réduit pour de meilleures performances
   BALL_MASS: 1,
-  BALL_FRICTION: 0.995, // Augmenté pour une friction plus réaliste
-  BALL_ELASTICITY: 0.9, // Augmenté pour des rebonds plus énergiques
+  BALL_FRICTION: 0.005, // FIXÉ: Valeur Matter.js réelle (au lieu de 0.995)
+  BALL_FRICTION_AIR: 0.0005, // AJOUTÉ: Friction de l'air
+  BALL_ELASTICITY: 0.85, // FIXÉ: Restitution réelle (au lieu de 0.9)
+  BALL_DENSITY: 0.0005, // AJOUTÉ: Densité pour Matter.js
+  BALL_SLOP: 0.05, // AJOUTÉ: Tolérance de collision
   BALL_MIN_SPEED: 2, // Réduit pour permettre des mouvements plus lents
   BALL_MAX_SPEED: 15, // Augmenté pour plus d'intensité
   INITIAL_CIRCLE_RADIUS: 120, // Réduit pour plus d'espace de mouvement initial
@@ -19,8 +22,8 @@ export const GAME_CONFIG = {
   // Configuration des cercles - Paramètres optimisés pour une meilleure synchronisation
   MIN_CIRCLE_RADIUS: 250, // Réduit pour plus d'espace central
   MAX_CIRCLE_RADIUS: 500, // Légèrement réduit pour un meilleur équilibre
-  CIRCLE_GAP_MIN_ANGLE: 40, // Réduit pour des ouvertures plus petites (plus difficile)
-  CIRCLE_GAP_MAX_ANGLE: 50, // Réduit pour plus de défi
+  CIRCLE_GAP_MIN_ANGLE: 35, // Réduit pour des ouvertures plus petites (plus difficile)
+  CIRCLE_GAP_MAX_ANGLE: 45, // Réduit pour plus de défi
   CIRCLE_SPACING: 35, // Réduit pour plus d'anneaux
   CIRCLE_STROKE_WIDTH: 8, // Réduit pour un look plus élégant
   SPIRAL_ROTATION_SPEED: 0.05, // Vitesse réduite pour une rotation plus lente et fluide

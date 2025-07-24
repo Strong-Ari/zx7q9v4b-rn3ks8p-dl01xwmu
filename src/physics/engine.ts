@@ -259,8 +259,18 @@ class PhysicsEngine {
 
     Matter.Engine.update(this.engine, deltaTime);
 
-    // FIX: Supprimer la mise à jour manuelle des segments - géré par SemiCircle.tsx
-    // Les segments restent statiques, la rotation est purement visuelle
+    // FIX: Vérifier les collisions avec les ouvertures des anneaux
+    const balls = [this.state.yesBall, this.state.noBall];
+    balls.forEach((ball) => {
+      for (let i = 0; i < this.state.circles.length; i++) {
+        const circle = this.state.circles[i];
+        if (!circle.isExploding && this.checkIfBallInGap(ball, i)) {
+          this.removeCircleSegments(i);
+          // Déclencher le son de collision avec l'anneau
+          this.collisionHandlers.onBallCircleCollision();
+        }
+      }
+    });
 
     // FIX: Contraintes de vitesse simplifiées et plus stables
     const bodies = [this.state.yesBall, this.state.noBall];
@@ -304,6 +314,59 @@ class PhysicsEngine {
     Matter.Engine.clear(this.engine);
   }
 
+  // FIX: Méthode pour détecter si une balle passe par l'ouverture d'un anneau
+  private checkIfBallInGap(ballBody: Matter.Body, circleId: number): boolean {
+    const centerX = GAME_CONFIG.VIDEO_WIDTH / 2;
+    const centerY = GAME_CONFIG.VIDEO_HEIGHT / 2;
+    
+    // Calculer le rayon de ce cercle
+    const radiusStep =
+      (GAME_CONFIG.MAX_CIRCLE_RADIUS - GAME_CONFIG.MIN_CIRCLE_RADIUS) /
+      (GAME_CONFIG.SPIRAL_DENSITY - 1);
+    const radius = GAME_CONFIG.MIN_CIRCLE_RADIUS + radiusStep * circleId * 1.5;
+    
+    // Distance de la balle au centre
+    const ballX = ballBody.position.x;
+    const ballY = ballBody.position.y;
+    const distanceFromCenter = Math.sqrt(
+      (ballX - centerX) * (ballX - centerX) + (ballY - centerY) * (ballY - centerY)
+    );
+    
+    // Vérifier si la balle est à la bonne distance (sur le cercle ± tolérance)
+    const tolerance = GAME_CONFIG.BALL_RADIUS + GAME_CONFIG.CIRCLE_STROKE_WIDTH;
+    if (Math.abs(distanceFromCenter - radius) > tolerance) {
+      return false;
+    }
+    
+    // Calculer l'angle de la balle par rapport au centre
+    const ballAngle = Math.atan2(ballY - centerY, ballX - centerX) * (180 / Math.PI);
+    const normalizedBallAngle = ((ballAngle % 360) + 360) % 360;
+    
+    // Calculer la rotation actuelle de l'anneau (même logique que SemiCircle.tsx)
+    const timeInSeconds = this.frameCount / GAME_CONFIG.FPS;
+    const baseRotation = (circleId * 360) / GAME_CONFIG.SPIRAL_DENSITY;
+    const currentRotation =
+      baseRotation + timeInSeconds * GAME_CONFIG.SPIRAL_ROTATION_SPEED * 360;
+    const normalizedRotation = ((currentRotation % 360) + 360) % 360;
+    
+    // Position de l'ouverture (fixée à 180° comme dans la création des segments)
+    const gapStartAngle = normalizedRotation + 180;
+    const gapAngle = (GAME_CONFIG.CIRCLE_GAP_MIN_ANGLE + GAME_CONFIG.CIRCLE_GAP_MAX_ANGLE) / 2;
+    const gapEndAngle = gapStartAngle + gapAngle;
+    
+    // Normaliser les angles de l'ouverture
+    const normalizedGapStart = ((gapStartAngle % 360) + 360) % 360;
+    const normalizedGapEnd = ((gapEndAngle % 360) + 360) % 360;
+    
+    // Vérifier si la balle est dans l'ouverture
+    if (normalizedGapStart < normalizedGapEnd) {
+      return normalizedBallAngle >= normalizedGapStart && normalizedBallAngle <= normalizedGapEnd;
+    } else {
+      // Cas où l'ouverture traverse 0°
+      return normalizedBallAngle >= normalizedGapStart || normalizedBallAngle <= normalizedGapEnd;
+    }
+  }
+
   private createCircles() {
     const circles: PhysicsState["circles"] = [];
     const centerX = GAME_CONFIG.VIDEO_WIDTH / 2;
@@ -324,9 +387,17 @@ class PhysicsEngine {
         Math.random() *
           (GAME_CONFIG.CIRCLE_GAP_MAX_ANGLE - GAME_CONFIG.CIRCLE_GAP_MIN_ANGLE);
 
+      // FIX: Créer l'ouverture à 180° pour une position fixe
+      const gapStartAngle = 180;
+      const gapEndAngle = gapStartAngle + gapAngle;
+
       for (let j = 0; j < segmentCount; j++) {
         const angle = (j * 360) / segmentCount;
-        if (angle < 360 - gapAngle) {
+        
+        // FIX: Vérifier si ce segment est dans l'ouverture
+        const isInGap = angle >= gapStartAngle && angle <= gapEndAngle;
+        
+        if (!isInGap) {
           const segment = Matter.Bodies.rectangle(
             centerX + radius * Math.cos((angle * Math.PI) / 180),
             centerY + radius * Math.sin((angle * Math.PI) / 180),

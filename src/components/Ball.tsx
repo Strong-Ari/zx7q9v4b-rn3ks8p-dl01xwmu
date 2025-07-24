@@ -37,8 +37,8 @@ export const Ball: React.FC<BallProps> = ({
   const renderTrail = () => {
     if (trail.length < 2) return null;
 
-    // Limiter le nombre d'éléments de traînée pour les performances
-    const maxTrailElements = 8;
+    // Limiter le nombre d'éléments de traînée pour les performances d'export
+    const maxTrailElements = 6; // Réduit encore plus pour l'export
     const step = Math.max(1, Math.floor(trail.length / maxTrailElements));
 
     return trail
@@ -46,8 +46,8 @@ export const Ball: React.FC<BallProps> = ({
       .map((pos, index, filteredTrail) => {
         const progress =
           filteredTrail.length > 1 ? index / (filteredTrail.length - 1) : 0;
-        const opacity = interpolate(progress, [0, 1], [0.5, 0]); // Réduire l'opacité max
-        const trailScale = interpolate(progress, [0, 1], [0.7, 0.2]); // Réduire la taille
+        const opacity = interpolate(progress, [0, 1], [0.4, 0]); // Réduire encore l'opacité
+        const trailScale = interpolate(progress, [0, 1], [0.6, 0.2]); // Réduire la taille
 
         return (
           <circle
@@ -64,27 +64,33 @@ export const Ball: React.FC<BallProps> = ({
 
   return (
     <g>
-      <defs>
-        <filter id="glow">
-          <feGaussianBlur stdDeviation="2" result="coloredBlur" />
-          <feMerge>
-            <feMergeNode in="coloredBlur" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-      </defs>
-
+      {/* FIX: Supprimer le filtre glow pour de meilleures performances d'export */}
+      
       {/* Traînée */}
       {renderTrail()}
 
       {/* Balle principale */}
       <g transform={`translate(${position.x}, ${position.y}) scale(${scale})`}>
-        <circle r={GAME_CONFIG.BALL_RADIUS} fill={color} filter="url(#glow)" />
+        {/* FIX: Gradient radial simple au lieu du filtre glow pour les performances */}
+        <defs>
+          <radialGradient id={`ballGradient-${type}`} cx="30%" cy="30%">
+            <stop offset="0%" stopColor={color} stopOpacity="1" />
+            <stop offset="70%" stopColor={color} stopOpacity="0.9" />
+            <stop offset="100%" stopColor={color} stopOpacity="0.7" />
+          </radialGradient>
+        </defs>
+        
+        <circle 
+          r={GAME_CONFIG.BALL_RADIUS} 
+          fill={`url(#ballGradient-${type})`}
+          stroke={color}
+          strokeWidth="1"
+        />
         <text
           fill={GAME_CONFIG.COLORS.TEXT_PRIMARY}
           textAnchor="middle"
           dominantBaseline="middle"
-          fontSize={GAME_CONFIG.BALL_RADIUS * 0.8}
+          fontSize={GAME_CONFIG.BALL_RADIUS * 0.7} // Légèrement plus petit pour de meilleures performances
           fontWeight="bold"
           style={{
             textTransform: "uppercase",
