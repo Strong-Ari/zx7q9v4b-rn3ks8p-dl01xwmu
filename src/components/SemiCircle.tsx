@@ -31,13 +31,14 @@ export const SemiCircle: React.FC<SemiCircleProps> = ({
   const currentRotation =
     baseRotation + timeInSeconds * GAME_CONFIG.SPIRAL_ROTATION_SPEED * 360;
 
-  // Debug: Logs pour diagnostic (à supprimer après test)
-  if (frame % 60 === 0) {
-    // Log toutes les 60 frames pour éviter le spam
-    console.log(
-      `[DIAGNOSTIC] Frame: ${frame}, FPS Config: ${GAME_CONFIG.FPS}, FPS Video: ${fps}, Rotation: ${currentRotation.toFixed(2)}`,
-    );
-  }
+  // FIX: Interpolation micro-fluide pour éliminer les saccades subtiles
+  const microFrame = frame % 1;
+  const microRotation = interpolate(
+    microFrame,
+    [0, 1],
+    [0, (GAME_CONFIG.SPIRAL_ROTATION_SPEED * 360) / GAME_CONFIG.FPS]
+  );
+  const smoothRotation = currentRotation + microRotation;
 
   const createArcPath = () => {
     const segments = 36;
@@ -67,7 +68,7 @@ export const SemiCircle: React.FC<SemiCircleProps> = ({
     <g
       transform={`
         translate(${GAME_CONFIG.VIDEO_WIDTH / 2} ${GAME_CONFIG.VIDEO_HEIGHT / 2})
-        rotate(${currentRotation})
+        rotate(${smoothRotation})
       `}
     >
       <defs>

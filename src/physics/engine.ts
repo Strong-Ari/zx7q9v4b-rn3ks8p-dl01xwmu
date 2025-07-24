@@ -28,17 +28,17 @@ class PhysicsEngine {
   ) {
     // FIX: Moteur physique optimisé pour Remotion - équilibre précision/performance
     this.engine = Matter.Engine.create({
-      gravity: { x: 0, y: 0.5 },
-      constraintIterations: 8, // FIX: Réduire pour de meilleures performances
-      positionIterations: 10, // FIX: Réduire pour de meilleures performances
-      velocityIterations: 8, // FIX: Réduire pour de meilleures performances
+      gravity: { x: 0, y: 0.3 }, // FIX: Réduire la gravité pour plus de fluidité
+      constraintIterations: 6, // FIX: Réduire encore pour plus de fluidité
+      positionIterations: 8, // FIX: Réduire encore
+      velocityIterations: 6, // FIX: Réduire encore
       timing: {
         timeScale: 1,
       },
     });
 
-    // Ajuster les paramètres de simulation pour plus de stabilité
-    this.engine.world.gravity.scale = 0.001;
+    // FIX: Ajuster les paramètres de simulation pour plus de stabilité et de fluidité
+    this.engine.world.gravity.scale = 0.0008; // FIX: Réduire l'échelle de gravité
     this.engine.timing.timeScale = 1;
 
     this.world = this.engine.world;
@@ -49,7 +49,7 @@ class PhysicsEngine {
 
     this.state = this.initializeState();
 
-    // Configurer les collisions avec la logique originale
+    // FIX: Configurer les collisions avec une logique de rebond plus naturelle
     Matter.Events.on(this.engine, "collisionStart", (event) => {
       event.pairs.forEach((pair) => {
         const { bodyA, bodyB } = pair;
@@ -103,38 +103,104 @@ class PhysicsEngine {
                 circleId,
               );
             } else {
-              // Appliquer une force de rebond plus forte
+              // FIX: Physique de rebond plus naturelle basée sur la normale de collision
+              const centerX = GAME_CONFIG.VIDEO_WIDTH / 2;
+              const centerY = GAME_CONFIG.VIDEO_HEIGHT / 2;
+              
+              // Calculer la normale de surface du ring
+              const toCenter = {
+                x: centerX - ballBody.position.x,
+                y: centerY - ballBody.position.y
+              };
+              const distance = Math.sqrt(toCenter.x * toCenter.x + toCenter.y * toCenter.y);
+              const normal = {
+                x: toCenter.x / distance,
+                y: toCenter.y / distance
+              };
+
+              // Calculer le rebond en utilisant la formule physique standard
               const velocity = ballBody.velocity;
-              const speed = Math.sqrt(
-                velocity.x * velocity.x + velocity.y * velocity.y,
-              );
-              const radius = Math.sqrt(
-                Math.pow(ballBody.position.x - centerX, 2) +
-                  Math.pow(ballBody.position.y - centerY, 2),
-              );
-              const normalX = (ballBody.position.x - centerX) / radius;
-              const normalY = (ballBody.position.y - centerY) / radius;
+              const dotProduct = velocity.x * normal.x + velocity.y * normal.y;
+              
+              // FIX: Rebond avec conservation d'énergie plus réaliste
+              const restitution = 0.8; // Légère perte d'énergie
+              const newVelocity = {
+                x: velocity.x - (1 + restitution) * dotProduct * normal.x,
+                y: velocity.y - (1 + restitution) * dotProduct * normal.y
+              };
 
-              Matter.Body.setVelocity(ballBody, {
-                x: -normalX * speed,
-                y: -normalY * speed,
-              });
+              // FIX: Ajouter une légère randomisation pour éviter les patterns répétitifs
+              const randomFactor = 0.95 + Math.random() * 0.1; // ±5% de variation
+              newVelocity.x *= randomFactor;
+              newVelocity.y *= randomFactor;
 
-              // Déplacer légèrement la balle pour éviter qu'elle ne reste coincée
+              Matter.Body.setVelocity(ballBody, newVelocity);
+
+              // FIX: Déplacer la balle pour éviter les collisions multiples
+              const pushDistance = GAME_CONFIG.BALL_RADIUS * 0.1;
               Matter.Body.setPosition(ballBody, {
-                x: ballBody.position.x + normalX * 2,
-                y: ballBody.position.y + normalY * 2,
+                x: ballBody.position.x - normal.x * pushDistance,
+                y: ballBody.position.y - normal.y * pushDistance,
               });
             }
           }
         }
 
-        // Collision entre balles
+        // FIX: Collision entre balles plus fluide
         if (
           (bodyA.label === "yesBall" || bodyA.label === "noBall") &&
           (bodyB.label === "yesBall" || bodyB.label === "noBall") &&
           bodyA.label !== bodyB.label
         ) {
+          // FIX: Collision élastique entre balles avec conservation du momentum
+          const ball1 = bodyA;
+          const ball2 = bodyB;
+          
+          const dx = ball2.position.x - ball1.position.x;
+          const dy = ball2.position.y - ball1.position.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          
+          if (distance > 0) {
+            const normal = { x: dx / distance, y: dy / distance };
+            
+            // Vitesses relatives
+            const relativeVelocity = {
+              x: ball2.velocity.x - ball1.velocity.x,
+              y: ball2.velocity.y - ball1.velocity.y
+            };
+            
+            const speed = relativeVelocity.x * normal.x + relativeVelocity.y * normal.y;
+            
+            if (speed < 0) return; // Les balles s'éloignent déjà
+            
+            // FIX: Collision élastique avec conservation de l'énergie
+            const restitution = 0.9;
+            const impulse = (1 + restitution) * speed / 2; // Masses égales
+            
+            Matter.Body.setVelocity(ball1, {
+              x: ball1.velocity.x + impulse * normal.x,
+              y: ball1.velocity.y + impulse * normal.y
+            });
+            
+            Matter.Body.setVelocity(ball2, {
+              x: ball2.velocity.x - impulse * normal.x,
+              y: ball2.velocity.y - impulse * normal.y
+            });
+            
+            // Séparer les balles pour éviter qu'elles restent collées
+            const separation = (GAME_CONFIG.BALL_RADIUS * 2.1 - distance) / 2;
+            if (separation > 0) {
+              Matter.Body.setPosition(ball1, {
+                x: ball1.position.x - normal.x * separation,
+                y: ball1.position.y - normal.y * separation
+              });
+              Matter.Body.setPosition(ball2, {
+                x: ball2.position.x + normal.x * separation,
+                y: ball2.position.y + normal.y * separation
+              });
+            }
+          }
+          
           this.collisionHandlers.onBallBallCollision();
         }
       });
@@ -153,12 +219,12 @@ class PhysicsEngine {
       GAME_CONFIG.BALL_RADIUS,
       {
         label: "yesBall",
-        friction: 0.005, // FIX: Réduire friction pour plus de fluidité
-        frictionAir: 0.0005, // FIX: Réduire friction air
-        restitution: 0.85, // FIX: Rebonds plus naturels
+        friction: 0.002, // FIX: Réduire encore la friction pour plus de fluidité
+        frictionAir: 0.0003, // FIX: Réduire friction air pour un mouvement plus libre
+        restitution: 0.9, // FIX: Rebonds plus énergiques
         mass: 1,
-        density: 0.0005, // FIX: Densité plus faible
-        slop: 0.05, // FIX: Tolérance plus large pour éviter les accrochages
+        density: 0.0003, // FIX: Densité encore plus faible pour des mouvements plus légers
+        slop: 0.1, // FIX: Tolérance très large pour éviter les micro-collisions
         inertia: Infinity,
         collisionFilter: {
           category: 0x0002,
@@ -173,12 +239,12 @@ class PhysicsEngine {
       GAME_CONFIG.BALL_RADIUS,
       {
         label: "noBall",
-        friction: 0.005, // FIX: Réduire friction pour plus de fluidité
-        frictionAir: 0.0005, // FIX: Réduire friction air
-        restitution: 0.85, // FIX: Rebonds plus naturels
+        friction: 0.002, // FIX: Réduire encore la friction pour plus de fluidité
+        frictionAir: 0.0003, // FIX: Réduire friction air pour un mouvement plus libre
+        restitution: 0.9, // FIX: Rebonds plus énergiques
         mass: 1,
-        density: 0.0005, // FIX: Densité plus faible
-        slop: 0.05, // FIX: Tolérance plus large pour éviter les accrochages
+        density: 0.0003, // FIX: Densité encore plus faible pour des mouvements plus légers
+        slop: 0.1, // FIX: Tolérance très large pour éviter les micro-collisions
         inertia: Infinity,
         collisionFilter: {
           category: 0x0002,
@@ -187,8 +253,8 @@ class PhysicsEngine {
       },
     );
 
-    // Appliquer une vitesse initiale plus naturelle
-    const initialSpeed = GAME_CONFIG.BALL_SPEED * 0.8;
+    // FIX: Appliquer une vitesse initiale plus dynamique et naturelle
+    const initialSpeed = GAME_CONFIG.BALL_SPEED * 1.1; // Légèrement plus rapide
     Matter.Body.setVelocity(yesBall, {
       x: Math.cos(angle) * initialSpeed,
       y: Math.sin(angle) * initialSpeed,
@@ -270,19 +336,40 @@ class PhysicsEngine {
         velocity.x * velocity.x + velocity.y * velocity.y,
       );
 
-      // Limites de vitesse fixes (pas de progression temporelle)
-      if (speed < GAME_CONFIG.BALL_MIN_SPEED && speed > 0) {
-        const factor = GAME_CONFIG.BALL_MIN_SPEED / speed;
+      // FIX: Limites de vitesse plus larges pour plus de fluidité
+      const minSpeed = GAME_CONFIG.BALL_MIN_SPEED * 0.8; // Plus permissif
+      const maxSpeed = GAME_CONFIG.BALL_MAX_SPEED * 1.2; // Plus de liberté
+
+      if (speed < minSpeed && speed > 0.1) { // Éviter la division par zéro
+        const factor = minSpeed / speed;
         Matter.Body.setVelocity(body, {
           x: velocity.x * factor,
           y: velocity.y * factor,
         });
-      } else if (speed > GAME_CONFIG.BALL_MAX_SPEED) {
-        const factor = GAME_CONFIG.BALL_MAX_SPEED / speed;
+      } else if (speed > maxSpeed) {
+        const factor = maxSpeed / speed;
         Matter.Body.setVelocity(body, {
           x: velocity.x * factor,
           y: velocity.y * factor,
         });
+      }
+
+      // FIX: Ajouter une force centripète douce pour maintenir l'action dans la zone visible
+      const centerX = GAME_CONFIG.VIDEO_WIDTH / 2;
+      const centerY = GAME_CONFIG.VIDEO_HEIGHT / 2;
+      const distanceFromCenter = Math.sqrt(
+        Math.pow(body.position.x - centerX, 2) + 
+        Math.pow(body.position.y - centerY, 2)
+      );
+
+      // Si la balle s'éloigne trop du centre, appliquer une force centripète douce
+      const maxDistance = GAME_CONFIG.MAX_CIRCLE_RADIUS + 100;
+      if (distanceFromCenter > maxDistance) {
+        const forceIntensity = 0.0005; // Force très douce
+        const forceX = (centerX - body.position.x) / distanceFromCenter * forceIntensity;
+        const forceY = (centerY - body.position.y) / distanceFromCenter * forceIntensity;
+        
+        Matter.Body.applyForce(body, body.position, { x: forceX, y: forceY });
       }
     });
   }
