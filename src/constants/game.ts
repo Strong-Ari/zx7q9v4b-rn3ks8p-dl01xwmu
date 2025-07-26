@@ -72,10 +72,33 @@ export const GAME_CONFIG = {
 } as const;
 
 export const MIDI_CONFIG = {
+  // Configuration héritée (conservée pour compatibilité)
   NOTE_DURATION: 0.2,
   VOLUME: 0.7,
   FREQUENCIES: {
     BALL_CIRCLE: [440, 523.25, 659.25],
     BALL_BALL: [880, 1046.5],
   },
+
+  // Nouvelle configuration MIDI
+  MIDI_ENABLED: true,
+  PREVIEW_ONLY: true, // Audio uniquement en preview, pas en rendu
+  MAX_NOTE_DURATION: 2.0, // Durée maximale d'une note en secondes
+  FALLBACK_TO_FREQUENCIES: true, // Utiliser les fréquences si MIDI échoue
+  
+  // Configuration Tone.js
+  SYNTH_CONFIG: {
+    OSCILLATOR_TYPE: 'triangle' as const,
+    ENVELOPE: {
+      ATTACK: 0.02,
+      DECAY: 0.1,
+      SUSTAIN: 0.3,
+      RELEASE: 1.2,
+    },
+    VOLUME_DB: -10, // Volume en dB pour éviter la distorsion
+  },
+  
+  // Configuration de debug
+  DEBUG_LOGS: true,
+  LOG_NOTE_NAMES: true,
 } as const;

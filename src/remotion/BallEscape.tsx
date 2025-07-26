@@ -3,6 +3,7 @@ import {
   useCurrentFrame,
   useVideoConfig,
   staticFile,
+  random,
 } from "remotion";
 import { GAME_CONFIG } from "../constants/game";
 import { useMemo } from "react";
@@ -11,6 +12,7 @@ import { SemiCircle } from "../components/SemiCircle";
 import { Scoreboard, Timer } from "../components/UI";
 import { TikTokComment } from "./TikTokComment/TikTokComment";
 import { WinnerAnimation } from "../components/WinnerAnimation";
+import { MidiDebugInfo } from "../components/MidiDebugInfo";
 import { useMidiPlayer } from "../hooks/useMidiPlayer";
 import { usePhysics } from "../hooks/usePhysics";
 
@@ -72,11 +74,11 @@ export const BallEscape: React.FC = () => {
             }
             gapAngle={
               GAME_CONFIG.CIRCLE_GAP_MIN_ANGLE +
-              Math.random() *
+              random(`circle-gap-${circle.id}`) *
                 (GAME_CONFIG.CIRCLE_GAP_MAX_ANGLE -
                   GAME_CONFIG.CIRCLE_GAP_MIN_ANGLE)
             }
-            gapRotation={Math.random() * 360}
+            gapRotation={random(`circle-rotation-${circle.id}`) * 360}
             isExploding={circle.isExploding}
             explosionColor={circle.explosionColor}
             baseRotation={(circle.id * 360) / GAME_CONFIG.SPIRAL_DENSITY}
@@ -106,6 +108,9 @@ export const BallEscape: React.FC = () => {
           noScore={gameState.scores.no}
         />
       )}
+
+      {/* Debug MIDI (seulement en mode développement) */}
+      <MidiDebugInfo show={true} position="bottom-right" />
     </AbsoluteFill>
   );
 };

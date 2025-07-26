@@ -17,6 +17,7 @@
     "@remotion/player": "4.0.323",
     "@remotion/shapes": "4.0.323",
     "@remotion/tailwind-v4": "4.0.323",
+    "@tonejs/midi": "^2.0.28",
     "@types/matter-js": "^0.19.8",
     "clsx": "2.1.1",
     "matter-js": "^0.20.0",
@@ -25,7 +26,9 @@
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "remotion": "4.0.323",
+    "soundfont-player": "^0.12.0",
     "tailwind-merge": "3.0.1",
+    "tone": "^15.1.22",
     "zod": "3.22.3"
   },
   "devDependencies": {
@@ -54,7 +57,7 @@
     "lint": "next lint",
     "preemotion": "npx tsx scripts/generate-comment-startup.ts",
     "remotion": "npm run preemotion && remotion studio",
-    "prerender": "npx tsx scripts/generate-comment-startup.ts",
+    "prerender": "npx tsx scripts/generate-comment-startup.ts && npx tsx scripts/select-midi-for-render.ts",
     "render": "npm run prerender && remotion render",
     "deploy": "node deploy.mjs",
     "test:tiktok": "tsx scripts/test-tiktok-generator.ts",
@@ -67,6 +70,8 @@
     "test:baked-physics": "npx tsx scripts/test-baked-physics.ts",
     "render:optimized": "npm run simulate && remotion render --concurrency=2",
     "render:fast": "npm run simulate && remotion render --concurrency=2 --every-nth-frame=2",
-    "encode:tiktok": "./scripts/encode-tiktok.sh"
+    "encode:tiktok": "./scripts/encode-tiktok.sh",
+    "test:midi": "npx tsx scripts/test-midi-system.ts",
+    "select:midi": "npx tsx scripts/select-midi-for-render.ts"
   }
 }
