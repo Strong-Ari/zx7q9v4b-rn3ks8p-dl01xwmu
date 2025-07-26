@@ -92,6 +92,51 @@ interface GenerateCommentResult {
 }
 
 /**
+ * Télécharge une image d'utilisateur aléatoire depuis randomuser.me
+ */
+async function downloadRandomUserImage(): Promise<string> {
+  try {
+    console.log("🔽 Téléchargement d'une image utilisateur aléatoire...");
+    
+    // Appeler l'API RandomUser.me
+    const response = await fetch('https://randomuser.me/api/');
+    const data = await response.json();
+    
+    if (!data.results || data.results.length === 0) {
+      throw new Error("Aucun utilisateur retourné par l'API");
+    }
+    
+    const user = data.results[0];
+    const imageUrl = user.picture.large; // Utiliser la grande image
+    
+    console.log(`📸 URL de l'image: ${imageUrl}`);
+    
+    // Télécharger l'image
+    const imageResponse = await fetch(imageUrl);
+    if (!imageResponse.ok) {
+      throw new Error(`Erreur lors du téléchargement de l'image: ${imageResponse.status}`);
+    }
+    
+    const imageBuffer = await imageResponse.arrayBuffer();
+    
+    // Sauvegarder l'image temporairement
+    const tempImagePath = path.join(process.cwd(), "public", "temp", "random-user.jpg");
+    
+    // Créer le dossier temp s'il n'existe pas
+    await fs.mkdir(path.dirname(tempImagePath), { recursive: true });
+    
+    await fs.writeFile(tempImagePath, Buffer.from(imageBuffer));
+    
+    console.log(`✅ Image sauvegardée: ${tempImagePath}`);
+    
+    return tempImagePath;
+  } catch (error) {
+    console.error("❌ Erreur lors du téléchargement de l'image:", error);
+    throw error;
+  }
+}
+
+/**
  * Génère un pseudo TikTok aléatoire
  */
 function getRandomUsername(): string {
@@ -147,6 +192,7 @@ async function waitForElement(
  */
 export async function generateTikTokComment(): Promise<GenerateCommentResult> {
   let browser: Browser | null = null;
+  let tempImagePath: string | null = null;
 
   try {
     console.log("🚀 Démarrage de la génération de commentaire TikTok...");
@@ -164,6 +210,9 @@ export async function generateTikTokComment(): Promise<GenerateCommentResult> {
 
     console.log(`📝 Pseudo généré: ${username}`);
     console.log(`💬 Commentaire généré: ${comment}`);
+
+    // Télécharger une image d'utilisateur aléatoire
+    tempImagePath = await downloadRandomUserImage();
 
     // Supprimer l'ancienne image s'elle existe
     await removeOldImage(outputPath);
@@ -270,33 +319,59 @@ export async function generateTikTokComment(): Promise<GenerateCommentResult> {
       throw new Error("Impossible de remplir le champ commentaire");
     }
 
-    // Cliquer sur le bouton "Randomize" pour générer une photo de profil
-    console.log("🎲 Génération de la photo de profil...");
-    const randomizeSelectors = [
-      'button:has-text("Randomize")',
-      'button:has-text("Random")',
-      '[data-testid*="randomize"]',
-      'button[title*="random" i]',
-      'button >> text="Randomize"',
+    // Uploader l'image d'utilisateur aléatoire
+    console.log("📤 Upload de l'image d'utilisateur aléatoire...");
+    const uploadSelectors = [
+      'input[type="file"]',
+      'button:has-text("Upload")',
+      'button:has-text("upload")',
+      '[data-testid*="upload"]',
+      'button[title*="upload" i]',
+      '.upload-btn',
+      '#upload-btn',
     ];
 
-    let randomizeClicked = false;
-    for (const selector of randomizeSelectors) {
-      try {
-        const element = page.locator(selector).first();
-        if (await element.isVisible({ timeout: 3000 })) {
-          await element.click();
-          await page.waitForTimeout(2000); // Attendre la génération
-          randomizeClicked = true;
-          break;
-        }
-      } catch {}
+    let uploadSuccess = false;
+    
+    // D'abord essayer de trouver un input file
+    try {
+      const fileInput = page.locator('input[type="file"]').first();
+      if (await fileInput.isVisible({ timeout: 3000 }) || await fileInput.count() > 0) {
+        await fileInput.setInputFiles(tempImagePath);
+        await page.waitForTimeout(3000); // Attendre l'upload
+        uploadSuccess = true;
+        console.log("✅ Image uploadée via input file");
+      }
+    } catch (error) {
+      console.log("⚠️ Input file non trouvé, recherche du bouton Upload...");
     }
 
-    if (!randomizeClicked) {
-      console.log(
-        "⚠️ Bouton Randomize non trouvé, utilisation de la photo par défaut",
-      );
+    // Si l'input file n'a pas marché, essayer les boutons Upload
+    if (!uploadSuccess) {
+      for (const selector of uploadSelectors.slice(1)) { // Skip input[type="file"] déjà testé
+        try {
+          const element = page.locator(selector).first();
+          if (await element.isVisible({ timeout: 3000 })) {
+            await element.click();
+            
+            // Attendre qu'un input file apparaisse après le clic
+            await page.waitForTimeout(1000);
+            
+            const fileInput = page.locator('input[type="file"]').first();
+            if (await fileInput.count() > 0) {
+              await fileInput.setInputFiles(tempImagePath);
+              await page.waitForTimeout(3000);
+              uploadSuccess = true;
+              console.log(`✅ Image uploadée via bouton: ${selector}`);
+              break;
+            }
+          }
+        } catch {}
+      }
+    }
+
+    if (!uploadSuccess) {
+      console.log("⚠️ Bouton Upload non trouvé, utilisation de la photo par défaut");
     }
 
     // Attendre un peu pour que tout soit généré
@@ -367,6 +442,16 @@ export async function generateTikTokComment(): Promise<GenerateCommentResult> {
   } finally {
     if (browser) {
       await browser.close();
+    }
+    
+    // Nettoyer l'image temporaire
+    if (tempImagePath) {
+      try {
+        await fs.unlink(tempImagePath);
+        console.log("🗑️ Image temporaire supprimée");
+      } catch (error) {
+        console.log("⚠️ Impossible de supprimer l'image temporaire:", error);
+      }
     }
   }
 }
