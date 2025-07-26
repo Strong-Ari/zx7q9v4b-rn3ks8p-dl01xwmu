@@ -18,6 +18,7 @@ interface MidiPlayerState {
   error: string | null;
   collisionFrames: number[];
   playedNotes: Array<{ note: MidiNote; frame: number }>;
+  needsUserInteraction: boolean;
 }
 
 export const useMidiPlayer = () => {
@@ -31,13 +32,51 @@ export const useMidiPlayer = () => {
     error: null,
     collisionFrames: [],
     playedNotes: [],
+    needsUserInteraction: false,
   });
 
   const midiDataRef = useRef<ProcessedMidiData | null>(null);
   const initPromiseRef = useRef<Promise<void> | null>(null);
 
   /**
-   * Initialise le système MIDI
+   * Force l'activation de l'audio avec interaction utilisateur
+   */
+  const activateAudio = useCallback(async (): Promise<boolean> => {
+    try {
+      console.log("[useMidiPlayer] Tentative d'activation audio utilisateur...");
+      
+      // Créer un contexte audio temporaire pour forcer l'activation
+      if (typeof window !== "undefined") {
+        const tempContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const source = tempContext.createOscillator();
+        const gain = tempContext.createGain();
+        
+        source.connect(gain);
+        gain.connect(tempContext.destination);
+        gain.gain.value = 0; // Silencieux
+        source.start();
+        source.stop(tempContext.currentTime + 0.01);
+        
+        await tempContext.close();
+      }
+
+      // Maintenant initialiser Tone.js
+      const success = await remotionAudioPlayer.initAudio();
+      if (success) {
+        setState(prev => ({ ...prev, needsUserInteraction: false }));
+        console.log("[useMidiPlayer] Audio activé avec succès via interaction utilisateur");
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error("[useMidiPlayer] Erreur lors de l'activation audio:", error);
+      return false;
+    }
+  }, []);
+
+  /**
+   * Initialise le système MIDI avec gestion améliorée des erreurs
    */
   const initMidi = useCallback(async (): Promise<void> => {
     // Éviter les initialisations multiples
@@ -49,28 +88,32 @@ export const useMidiPlayer = () => {
       setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
       try {
-        console.log("[useMidiPlayer] Initialisation du système MIDI...");
+        console.log("[useMidiPlayer] 🎵 Initialisation du système MIDI...");
 
-        // 1. Initialiser le lecteur audio Remotion
-        const audioInitialized = await remotionAudioPlayer.initAudio();
-        if (!audioInitialized) {
-          console.log(
-            "[useMidiPlayer] Audio désactivé - fonctionnement en mode silencieux",
-          );
+        // 1. Essayer d'initialiser l'audio
+        let audioInitialized = false;
+        try {
+          audioInitialized = await remotionAudioPlayer.initAudio();
+        } catch (audioError) {
+          console.log("[useMidiPlayer] Erreur audio initiale:", audioError);
+          // Continuer sans audio pour l'instant
         }
 
-        // 2. Sélectionner un fichier MIDI aléatoire
+        if (!audioInitialized) {
+          console.log("[useMidiPlayer] Audio nécessite une interaction utilisateur");
+          setState(prev => ({ ...prev, needsUserInteraction: true }));
+        }
+
+        // 2. Sélectionner un fichier MIDI
         const selectedFile = midiService.selectRandomMidiFile();
-        console.log(
-          `[useMidiPlayer] Fichier MIDI sélectionné: ${selectedFile}`,
-        );
+        console.log(`[useMidiPlayer] 📁 Fichier MIDI sélectionné: ${selectedFile}`);
 
         // 3. Charger et parser le fichier MIDI
         const midiData = await midiService.loadMidiFile(selectedFile);
         midiDataRef.current = midiData;
 
         console.log(
-          `[useMidiPlayer] MIDI chargé: ${midiData.notes.length} notes, durée: ${midiData.totalDuration.toFixed(2)}s`,
+          `[useMidiPlayer] ✅ MIDI chargé: ${midiData.notes.length} notes, durée: ${midiData.totalDuration.toFixed(2)}s`,
         );
 
         setState((prev) => ({
@@ -83,15 +126,13 @@ export const useMidiPlayer = () => {
           error: null,
         }));
 
-        console.log("[useMidiPlayer] Système MIDI initialisé avec succès");
+        console.log("[useMidiPlayer] 🎉 Système MIDI initialisé avec succès");
       } catch (error) {
-        console.error(
-          "[useMidiPlayer] Erreur lors de l'initialisation:",
-          error,
-        );
+        console.error("[useMidiPlayer] ❌ Erreur lors de l'initialisation:", error);
         setState((prev) => ({
           ...prev,
           isLoading: false,
+          isInitialized: false, // Marquer comme non initialisé
           error: error instanceof Error ? error.message : "Erreur inconnue",
         }));
       }
@@ -105,7 +146,13 @@ export const useMidiPlayer = () => {
    */
   const playNextNote = useCallback((): void => {
     if (!state.isInitialized || !midiDataRef.current) {
-      console.log("[useMidiPlayer] Système MIDI non initialisé, note ignorée");
+      console.log("[useMidiPlayer] ⚠️ Système MIDI non initialisé, note ignorée");
+      
+      // Essayer de réinitialiser si pas initialisé
+      if (!state.isLoading) {
+        console.log("[useMidiPlayer] 🔄 Tentative de réinitialisation...");
+        initMidi();
+      }
       return;
     }
 
@@ -114,9 +161,7 @@ export const useMidiPlayer = () => {
 
     // Vérifier s'il y a des notes disponibles
     if (midiData.notes.length === 0) {
-      console.log(
-        "[useMidiPlayer] Aucune note disponible dans le fichier MIDI",
-      );
+      console.log("[useMidiPlayer] ⚠️ Aucune note disponible dans le fichier MIDI");
       return;
     }
 
@@ -124,8 +169,20 @@ export const useMidiPlayer = () => {
     const noteIndex = currentIndex % midiData.notes.length;
     const currentNote = midiData.notes[noteIndex];
 
-    // Jouer la note avec le frame actuel pour la synchronisation
-    remotionAudioPlayer.playNote(currentNote, currentFrame);
+    // Vérifier si l'audio nécessite une interaction
+    if (state.needsUserInteraction) {
+      console.log("[useMidiPlayer] 🖱️ Audio nécessite une interaction utilisateur");
+      // Essayer d'activer automatiquement
+      activateAudio().then(success => {
+        if (success) {
+          // Re-jouer la note après activation
+          remotionAudioPlayer.playNote(currentNote, currentFrame);
+        }
+      });
+    } else {
+      // Jouer la note normalement
+      remotionAudioPlayer.playNote(currentNote, currentFrame);
+    }
 
     // Log pour le debug
     const noteName = midiService.midiToNoteName
@@ -133,7 +190,7 @@ export const useMidiPlayer = () => {
       : `MIDI${currentNote.pitch}`;
 
     console.log(
-      `[useMidiPlayer] Note ${noteIndex + 1}/${midiData.notes.length} jouée: ${noteName} (vélocité: ${currentNote.velocity.toFixed(2)})`,
+      `[useMidiPlayer] 🎵 Note ${noteIndex + 1}/${midiData.notes.length} jouée: ${noteName} (vélocité: ${currentNote.velocity.toFixed(2)})`,
     );
 
     // Mettre à jour l'index pour la prochaine note et enregistrer la collision
@@ -146,7 +203,7 @@ export const useMidiPlayer = () => {
         { note: currentNote, frame: currentFrame },
       ],
     }));
-  }, [state.isInitialized, state.currentNoteIndex]);
+  }, [state.isInitialized, state.currentNoteIndex, state.needsUserInteraction, currentFrame, initMidi, activateAudio]);
 
   /**
    * Joue un son pour une collision (utilise la note suivante)
@@ -157,7 +214,7 @@ export const useMidiPlayer = () => {
       playNextNote();
 
       // Log pour le debug
-      console.log(`[useMidiPlayer] Collision ${type} -> note MIDI jouée`);
+      console.log(`[useMidiPlayer] 💥 Collision ${type} -> note MIDI jouée`);
     },
     [playNextNote],
   );
@@ -172,7 +229,7 @@ export const useMidiPlayer = () => {
       collisionFrames: [],
       playedNotes: [],
     }));
-    console.log("[useMidiPlayer] Séquence MIDI remise à zéro");
+    console.log("[useMidiPlayer] 🔄 Séquence MIDI remise à zéro");
   }, []);
 
   /**
@@ -185,7 +242,7 @@ export const useMidiPlayer = () => {
       try {
         const selectedFile = fileName || midiService.selectRandomMidiFile();
         console.log(
-          `[useMidiPlayer] Changement de fichier MIDI: ${selectedFile}`,
+          `[useMidiPlayer] 📁 Changement de fichier MIDI: ${selectedFile}`,
         );
 
         const midiData = await midiService.loadMidiFile(selectedFile);
@@ -201,11 +258,11 @@ export const useMidiPlayer = () => {
         }));
 
         console.log(
-          `[useMidiPlayer] Nouveau fichier MIDI chargé: ${midiData.notes.length} notes`,
+          `[useMidiPlayer] ✅ Nouveau fichier MIDI chargé: ${midiData.notes.length} notes`,
         );
       } catch (error) {
         console.error(
-          "[useMidiPlayer] Erreur lors du changement de fichier:",
+          "[useMidiPlayer] ❌ Erreur lors du changement de fichier:",
           error,
         );
         setState((prev) => ({
@@ -246,22 +303,39 @@ export const useMidiPlayer = () => {
   useEffect(() => {
     return () => {
       remotionAudioPlayer.cleanup();
-      console.log("[useMidiPlayer] Ressources nettoyées");
+      console.log("[useMidiPlayer] 🧹 Ressources nettoyées");
     };
   }, []);
 
-  // Auto-initialisation si pas encore fait
+  // Auto-initialisation améliorée avec retry
   useEffect(() => {
     if (!state.isInitialized && !state.isLoading && !initPromiseRef.current) {
+      console.log("[useMidiPlayer] 🚀 Démarrage de l'auto-initialisation...");
       initMidi();
     }
   }, [state.isInitialized, state.isLoading, initMidi]);
+
+  // Retry automatique en cas d'erreur après 2 secondes
+  useEffect(() => {
+    if (state.error && !state.isLoading && !state.isInitialized) {
+      console.log("[useMidiPlayer] 🔄 Retry automatique dans 2 secondes...");
+      const timer = setTimeout(() => {
+        console.log("[useMidiPlayer] 🔄 Tentative de récupération...");
+        setState(prev => ({ ...prev, error: null }));
+        initPromiseRef.current = null; // Reset pour permettre une nouvelle initialisation
+        initMidi();
+      }, 2000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [state.error, state.isLoading, state.isInitialized, initMidi]);
 
   return {
     // Fonctions principales
     playCollisionSound,
     playNextNote,
     initMidi,
+    activateAudio,
 
     // Gestion de la séquence
     resetSequence,

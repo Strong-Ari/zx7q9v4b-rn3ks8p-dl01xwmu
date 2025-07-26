@@ -103,6 +103,26 @@ export const MidiDebugInfo: React.FC<MidiDebugInfoProps> = ({
           ></span>
           <span>Notes jouées: {audioStats.totalNotesPlayed}</span>
         </div>
+
+        {/* Indicateur d'interaction utilisateur nécessaire */}
+        {midiPlayer.needsUserInteraction && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              marginTop: "2px",
+              color: "#fbbf24",
+            }}
+          >
+            <span
+              style={{
+                ...statusIndicatorStyle,
+                backgroundColor: "#fbbf24",
+              }}
+            ></span>
+            <span>⚠️ Interaction requise</span>
+          </div>
+        )}
       </div>
 
       {/* État de chargement */}
@@ -118,6 +138,60 @@ export const MidiDebugInfo: React.FC<MidiDebugInfoProps> = ({
           style={{ marginBottom: "6px", color: "#f87171", fontSize: "10px" }}
         >
           ❌ Erreur: {midiPlayer.error}
+        </div>
+      )}
+
+      {/* Bouton d'activation audio si nécessaire */}
+      {midiPlayer.needsUserInteraction && (
+        <div style={{ marginBottom: "6px" }}>
+          <button
+            onClick={() => {
+              console.log("[MidiDebugInfo] Tentative d'activation manuelle de l'audio...");
+              midiPlayer.activateAudio().then(success => {
+                if (success) {
+                  console.log("[MidiDebugInfo] Audio activé avec succès!");
+                } else {
+                  console.log("[MidiDebugInfo] Échec de l'activation audio");
+                }
+              });
+            }}
+            style={{
+              backgroundColor: "#f59e0b",
+              border: "none",
+              color: "black",
+              padding: "6px 12px",
+              borderRadius: "4px",
+              fontSize: "11px",
+              cursor: "pointer",
+              fontWeight: "bold",
+            }}
+          >
+            🔊 Activer Audio
+          </button>
+        </div>
+      )}
+
+      {/* Bouton de réinitialisation si erreur */}
+      {midiPlayer.error && !midiPlayer.isLoading && (
+        <div style={{ marginBottom: "6px" }}>
+          <button
+            onClick={() => {
+              console.log("[MidiDebugInfo] Réinitialisation manuelle...");
+              midiPlayer.initMidi();
+            }}
+            style={{
+              backgroundColor: "#ef4444",
+              border: "none",
+              color: "white",
+              padding: "6px 12px",
+              borderRadius: "4px",
+              fontSize: "11px",
+              cursor: "pointer",
+              fontWeight: "bold",
+            }}
+          >
+            🔄 Réinitialiser
+          </button>
         </div>
       )}
 
@@ -166,7 +240,7 @@ export const MidiDebugInfo: React.FC<MidiDebugInfoProps> = ({
       </div>
 
       {/* Actions de test */}
-      {audioStats.isActive && (
+      {audioStats.isActive && !midiPlayer.needsUserInteraction && (
         <div
           style={{
             marginTop: "8px",
@@ -175,7 +249,10 @@ export const MidiDebugInfo: React.FC<MidiDebugInfoProps> = ({
           }}
         >
           <button
-            onClick={() => midiPlayer.playNextNote()}
+            onClick={() => {
+              console.log("[MidiDebugInfo] Test de note manuel...");
+              midiPlayer.playNextNote();
+            }}
             style={{
               backgroundColor: "#4ade80",
               border: "none",
@@ -191,7 +268,10 @@ export const MidiDebugInfo: React.FC<MidiDebugInfoProps> = ({
           </button>
 
           <button
-            onClick={() => midiPlayer.resetSequence()}
+            onClick={() => {
+              console.log("[MidiDebugInfo] Reset de séquence manuel...");
+              midiPlayer.resetSequence();
+            }}
             style={{
               backgroundColor: "#f59e0b",
               border: "none",
@@ -204,6 +284,44 @@ export const MidiDebugInfo: React.FC<MidiDebugInfoProps> = ({
           >
             🔄 Reset
           </button>
+        </div>
+      )}
+
+      {/* Instructions pour l'utilisateur */}
+      {midiPlayer.needsUserInteraction && (
+        <div
+          style={{
+            marginTop: "8px",
+            paddingTop: "6px",
+            borderTop: "1px solid #444",
+            fontSize: "10px",
+            color: "#94a3b8",
+            lineHeight: "1.3",
+          }}
+        >
+          💡 Cliquez sur "Activer Audio" ou
+          <br />
+          interagissez avec la page pour
+          <br />
+          démarrer l'audio.
+        </div>
+      )}
+
+      {/* Statut détaillé pour debug */}
+      {MIDI_CONFIG.DEBUG_LOGS && (
+        <div
+          style={{
+            marginTop: "8px",
+            paddingTop: "6px",
+            borderTop: "1px solid #444",
+            fontSize: "9px",
+            color: "#6b7280",
+          }}
+        >
+          <div>Init: {midiPlayer.isInitialized ? "✓" : "✗"}</div>
+          <div>Loading: {midiPlayer.isLoading ? "✓" : "✗"}</div>
+          <div>Error: {midiPlayer.error ? "✓" : "✗"}</div>
+          <div>UserInteraction: {midiPlayer.needsUserInteraction ? "✓" : "✗"}</div>
         </div>
       )}
     </div>
