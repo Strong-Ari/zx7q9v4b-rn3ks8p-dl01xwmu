@@ -18,13 +18,13 @@ export const GAME_CONFIG = {
 
   // Configuration des cercles - Paramètres optimisés pour une meilleure synchronisation
   MIN_CIRCLE_RADIUS: 250, // Réduit pour plus d'espace central
-  MAX_CIRCLE_RADIUS: 500, // Légèrement réduit pour un meilleur équilibre
+  MAX_CIRCLE_RADIUS: 800, // Légèrement réduit pour un meilleur équilibre
   CIRCLE_GAP_MIN_ANGLE: 40, // Réduit pour des ouvertures plus petites (plus difficile)
   CIRCLE_GAP_MAX_ANGLE: 50, // Réduit pour plus de défi
   CIRCLE_SPACING: 35, // Réduit pour plus d'anneaux
-  CIRCLE_STROKE_WIDTH: 8, // Réduit pour un look plus élégant
-  SPIRAL_ROTATION_SPEED: 0.05, // Vitesse réduite pour une rotation plus lente et fluide
-  SPIRAL_DENSITY: 15, // Augmenté pour plus d'anneaux
+  CIRCLE_STROKE_WIDTH: 9, // Réduit pour un look plus élégant
+  SPIRAL_ROTATION_SPEED: 0.1, // Vitesse réduite pour une rotation plus lente et fluide
+  SPIRAL_DENSITY: 25, // Augmenté pour plus d'anneaux
   CIRCLE_GRADIENT_START: "#4ade80",
   CIRCLE_GRADIENT_END: "#22d3ee",
 
