@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { midiService, ProcessedMidiData } from "../services/midiService";
-import { audioPlayer } from "../services/audioPlayer";
+import { useCurrentFrame } from "remotion";
+import { midiService, ProcessedMidiData, MidiNote } from "../services/midiService";
+import { remotionAudioPlayer } from "../services/remotionAudioPlayer";
 
 type CollisionType = "BALL_CIRCLE" | "BALL_BALL";
 
@@ -11,9 +12,12 @@ interface MidiPlayerState {
   currentNoteIndex: number;
   totalNotes: number;
   error: string | null;
+  collisionFrames: number[];
+  playedNotes: Array<{note: MidiNote, frame: number}>;
 }
 
 export const useMidiPlayer = () => {
+  const currentFrame = useCurrentFrame();
   const [state, setState] = useState<MidiPlayerState>({
     isInitialized: false,
     isLoading: false,
@@ -21,6 +25,8 @@ export const useMidiPlayer = () => {
     currentNoteIndex: 0,
     totalNotes: 0,
     error: null,
+    collisionFrames: [],
+    playedNotes: [],
   });
 
   const midiDataRef = useRef<ProcessedMidiData | null>(null);
@@ -41,8 +47,8 @@ export const useMidiPlayer = () => {
       try {
         console.log('[useMidiPlayer] Initialisation du système MIDI...');
 
-        // 1. Initialiser le lecteur audio
-        const audioInitialized = await audioPlayer.initAudio();
+        // 1. Initialiser le lecteur audio Remotion
+        const audioInitialized = await remotionAudioPlayer.initAudio();
         if (!audioInitialized) {
           console.log('[useMidiPlayer] Audio désactivé - fonctionnement en mode silencieux');
         }
@@ -104,8 +110,8 @@ export const useMidiPlayer = () => {
     const noteIndex = currentIndex % midiData.notes.length;
     const currentNote = midiData.notes[noteIndex];
 
-    // Jouer la note
-    audioPlayer.playNote(currentNote);
+    // Jouer la note avec le frame actuel pour la synchronisation
+    remotionAudioPlayer.playNote(currentNote, currentFrame);
 
     // Log pour le debug
     const noteName = midiService.midiToNoteName ? 
@@ -114,10 +120,12 @@ export const useMidiPlayer = () => {
     
     console.log(`[useMidiPlayer] Note ${noteIndex + 1}/${midiData.notes.length} jouée: ${noteName} (vélocité: ${currentNote.velocity.toFixed(2)})`);
 
-    // Mettre à jour l'index pour la prochaine note
+    // Mettre à jour l'index pour la prochaine note et enregistrer la collision
     setState(prev => ({
       ...prev,
       currentNoteIndex: (currentIndex + 1) % midiData.notes.length,
+      collisionFrames: [...prev.collisionFrames, currentFrame],
+      playedNotes: [...prev.playedNotes, { note: currentNote, frame: currentFrame }],
     }));
 
   }, [state.isInitialized, state.currentNoteIndex]);
@@ -137,7 +145,12 @@ export const useMidiPlayer = () => {
    * Reset la séquence MIDI au début
    */
   const resetSequence = useCallback((): void => {
-    setState(prev => ({ ...prev, currentNoteIndex: 0 }));
+    setState(prev => ({ 
+      ...prev, 
+      currentNoteIndex: 0,
+      collisionFrames: [],
+      playedNotes: [],
+    }));
     console.log('[useMidiPlayer] Séquence MIDI remise à zéro');
   }, []);
 
@@ -196,7 +209,7 @@ export const useMidiPlayer = () => {
    */
   useEffect(() => {
     return () => {
-      audioPlayer.cleanup();
+      remotionAudioPlayer.cleanup();
       console.log('[useMidiPlayer] Ressources nettoyées');
     };
   }, []);
@@ -224,7 +237,7 @@ export const useMidiPlayer = () => {
     
     // Utilitaires
     availableFiles: midiService.getAvailableFiles(),
-    audioStatus: audioPlayer.getStatus(),
+    audioStatus: remotionAudioPlayer.getAudioStats(),
   };
 };
 

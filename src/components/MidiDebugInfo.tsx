@@ -18,7 +18,7 @@ export const MidiDebugInfo: React.FC<MidiDebugInfoProps> = ({
   }
 
   const midiInfo = midiPlayer.getMidiInfo();
-  const audioStatus = midiPlayer.audioStatus;
+  const audioStats = midiPlayer.audioStatus;
 
   const positionStyles = {
     "top-left": { top: "10px", left: "10px" },
@@ -67,13 +67,13 @@ export const MidiDebugInfo: React.FC<MidiDebugInfoProps> = ({
         </div>
         
         <div style={{ display: "flex", alignItems: "center", marginBottom: "2px" }}>
-          <span style={{ ...statusIndicatorStyle, ...getStatusColor(audioStatus.isAvailable) }}></span>
-          <span>Audio: {audioStatus.isAvailable ? "Disponible" : "Indisponible"}</span>
+          <span style={{ ...statusIndicatorStyle, ...getStatusColor(audioStats.isActive) }}></span>
+          <span>Audio: {audioStats.isActive ? "Actif" : "Inactif"}</span>
         </div>
 
         <div style={{ display: "flex", alignItems: "center" }}>
-          <span style={{ ...statusIndicatorStyle, ...getStatusColor(audioStatus.isPreviewMode) }}></span>
-          <span>Mode: {audioStatus.isPreviewMode ? "Preview" : "Render"}</span>
+          <span style={{ ...statusIndicatorStyle, ...getStatusColor(audioStats.totalNotesPlayed > 0) }}></span>
+          <span>Notes jouées: {audioStats.totalNotesPlayed}</span>
         </div>
       </div>
 
@@ -130,7 +130,7 @@ export const MidiDebugInfo: React.FC<MidiDebugInfoProps> = ({
       </div>
 
       {/* Actions de test */}
-      {audioStatus.isAvailable && (
+      {audioStats.isActive && (
         <div style={{ marginTop: "8px", paddingTop: "6px", borderTop: "1px solid #444" }}>
           <button
             onClick={() => midiPlayer.playNextNote()}

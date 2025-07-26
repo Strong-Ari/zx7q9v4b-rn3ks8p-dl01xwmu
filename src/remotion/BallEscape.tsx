@@ -19,7 +19,8 @@ import { usePhysics } from "../hooks/usePhysics";
 export const BallEscape: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const { playCollisionSound } = useMidiPlayer();
+  const midiPlayer = useMidiPlayer();
+  const { playCollisionSound } = midiPlayer;
 
   // Calculer le temps écoulé en secondes
   const timeElapsed = frame / fps;
@@ -108,6 +109,10 @@ export const BallEscape: React.FC = () => {
           noScore={gameState.scores.no}
         />
       )}
+
+      {/* Note: L'audio MIDI est géré par Tone.js dans le navigateur
+          et sera audible dans le studio et potentiellement dans le rendu
+          selon les capacités du navigateur */}
 
       {/* Debug MIDI (seulement en mode développement) */}
       <MidiDebugInfo show={true} position="bottom-right" />

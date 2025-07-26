@@ -82,7 +82,7 @@ export const MIDI_CONFIG = {
 
   // Nouvelle configuration MIDI
   MIDI_ENABLED: true,
-  PREVIEW_ONLY: true, // Audio uniquement en preview, pas en rendu
+  PREVIEW_ONLY: false, // Audio dans le studio ET le rendu
   MAX_NOTE_DURATION: 2.0, // Durée maximale d'une note en secondes
   FALLBACK_TO_FREQUENCIES: true, // Utiliser les fréquences si MIDI échoue
   

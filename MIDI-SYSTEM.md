@@ -7,7 +7,7 @@ Ce document décrit le système MIDI complet intégré dans le jeu Ball Escape d
 ✅ **Chargement de fichiers MIDI réels** depuis `public/midis/`  
 ✅ **Sélection aléatoire** d'un fichier MIDI à chaque rendu  
 ✅ **Parsing note par note** avec `@tonejs/midi`  
-✅ **Audio uniquement en preview**, jamais dans le rendu final  
+✅ **Audio dans le studio ET le rendu** (selon les capacités du navigateur)  
 ✅ **Son à chaque collision** (balle contre cercle ou balle contre balle)  
 ✅ **Bouclage automatique** quand la fin est atteinte  
 ✅ **Traitement asynchrone** non-bloquant  
@@ -68,6 +68,7 @@ npm run dev
 - ✅ Sélection MIDI aléatoire
 - ✅ Debug info visible
 - ✅ Sons à chaque collision
+- 🎵 Audio audible en temps réel
 
 ### Production (Rendu)
 
@@ -76,8 +77,8 @@ npm run render
 ```
 
 - ✅ Sélection MIDI pré-définie via script
-- ❌ Audio désactivé (silencieux)
-- ✅ Pas d'impact sur l'export vidéo
+- 🎵 Audio potentiellement présent dans le rendu
+- ✅ Synchronisé avec les collisions
 - ✅ Performance optimale
 
 ### Tests
@@ -97,7 +98,7 @@ npm run select:midi
 ```typescript
 export const MIDI_CONFIG = {
   MIDI_ENABLED: true,           // Activer le système MIDI
-  PREVIEW_ONLY: true,           // Audio uniquement en preview
+  PREVIEW_ONLY: false,          // Audio dans studio ET rendu
   MAX_NOTE_DURATION: 2.0,       // Durée max d'une note (secondes)
   FALLBACK_TO_FREQUENCIES: true, // Fallback si MIDI échoue
   
@@ -213,24 +214,22 @@ Le composant `MidiDebugInfo` affiche en temps réel :
 2. **`scripts/select-midi-for-render.ts`** sélectionne un fichier aléatoire
 3. **`public/selected-midi.json`** stocke la sélection
 4. **Le système MIDI** utilise ce fichier lors du rendu
-5. **L'audio est désactivé** automatiquement en mode rendu
-6. **La vidéo finale** ne contient aucun son
+5. **L'audio est activé** dans le navigateur (studio/rendu)
+6. **La vidéo finale** peut contenir l'audio selon le navigateur
 
 ## 🚨 Détection de Mode
 
 Le système détecte automatiquement le contexte d'exécution :
 
 ```typescript
-// Preview Mode (Remotion Player)
+// Browser Mode (Studio/Render)
 - window !== undefined
 - document !== undefined  
-- !process.env.REMOTION_RENDER
 → ✅ Audio activé avec Tone.js
 
-// Render Mode (Export vidéo)
-- Pas de window/document OU
-- process.env.REMOTION_RENDER = true
-→ ❌ Audio désactivé (silencieux)
+// Server Mode (Export serveur)
+- Pas de window/document
+→ ❌ Audio désactivé côté serveur
 ```
 
 ## 📊 Performances
@@ -305,9 +304,9 @@ Le système MIDI est maintenant **100% fonctionnel** et offre :
 
 🎵 **Expérience musicale riche** avec de vrais fichiers MIDI  
 🎮 **Gameplay interactif** avec sons à chaque collision  
-🎬 **Rendu vidéo propre** sans pollution sonore  
+🎬 **Audio dans le studio ET le rendu** selon les capacités  
 ⚡ **Performances optimales** avec cache et async  
 🛠️ **Debug facile** avec composant visuel  
 🔧 **Configuration flexible** via constantes  
 
-**Le jeu Ball Escape a maintenant une bande sonore unique à chaque partie !** 🎉
+**Le jeu Ball Escape a maintenant une bande sonore unique à chaque partie, audible dans le studio et potentiellement dans le rendu final !** 🎉

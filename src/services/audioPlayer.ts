@@ -16,24 +16,23 @@ export class AudioPlayer {
    */
   private detectPreviewMode(): void {
     try {
-      // En mode render, il n'y a pas d'interface utilisateur et certaines APIs ne sont pas disponibles
+      // Maintenant on active l'audio dans tous les modes (studio + render)
       this.isPreviewMode = typeof window !== 'undefined' && 
-                          typeof document !== 'undefined' &&
-                          !process.env.REMOTION_RENDER;
+                          typeof document !== 'undefined';
       
-      console.log(`[AudioPlayer] Mode détecté: ${this.isPreviewMode ? 'Preview' : 'Render'}`);
+      console.log(`[AudioPlayer] Mode détecté: ${this.isPreviewMode ? 'Browser/Studio' : 'Server'}`);
     } catch {
       this.isPreviewMode = false;
-      console.log('[AudioPlayer] Mode Render détecté (pas de window/document)');
+      console.log('[AudioPlayer] Mode Serveur détecté (pas de window/document)');
     }
   }
 
   /**
-   * Initialise le système audio (seulement en mode preview)
+   * Initialise le système audio (studio et render)
    */
   public async initAudio(): Promise<boolean> {
     if (!this.isPreviewMode) {
-      console.log('[AudioPlayer] Audio désactivé en mode render');
+      console.log('[AudioPlayer] Audio désactivé côté serveur');
       return false;
     }
 
@@ -81,7 +80,7 @@ export class AudioPlayer {
    */
   public playNote(note: MidiNote): void {
     if (!this.isPreviewMode || !this.isInitialized || !this.synth) {
-      return; // Ne pas jouer en mode render ou si pas initialisé
+      return; // Ne pas jouer côté serveur ou si pas initialisé
     }
 
     try {
