@@ -35,6 +35,80 @@ const RANDOM_USERNAMES = [
   "slay.queen",
   "touch.grass",
   "brain.rot",
+  "simpgod23",
+  "ghost.mode",
+  "late4everything",
+  "thot.patrol",
+  "snackdealer",
+  "side.eye.queen",
+  "delulu.mode",
+  "lowkey.obsessed",
+  "alpha.femme",
+  "betaboy.energy",
+  "sigma.scroll",
+  "mood.sync",
+  "shy.baddie",
+  "zodiac.bae",
+  "scrolladdict",
+  "hot.mess.era",
+  "foryou.witch",
+  "skrrt.szn",
+  "notmyproblem",
+  "vibekiller",
+  "corememory.mp4",
+  "pls.stop",
+  "uwu.boi",
+  "not.clickbait",
+  "irl.npc",
+  "seen.zoned",
+  "rizzlord",
+  "fyp.warrior",
+  "sassy.rizzler",
+  "tea.spiller99",
+  "toxiccrush",
+  "sadboyhours",
+  "cringe.machine",
+  "gossip.ghoul",
+  "filter.freak",
+  "emoprincess",
+  "drama.mama",
+  "capdetector",
+  "ily.bruh",
+  "glo.up.gawd",
+  "flexalert",
+  "clout.bait",
+  "trend.survivor",
+  "hoe.exe",
+  "girlboss.4eva",
+  "mainchar.energy",
+  "soft.core.rizz",
+  "ratioed_you",
+  "based.and.tired",
+  "crying.mp4",
+  "mental.breakdance",
+  "genz.overthinker",
+  "pls.unsee",
+  "tiktookmeout",
+  "overstim.baddie",
+  "never.offline",
+  "cancelproof",
+  "bfless.baddie",
+  "cutecore.rage",
+  "doyouloveme",
+  "istg.irl",
+  "nvm.ignore",
+  "ghosting.queen",
+  "doubletexted",
+  "highkey.simp",
+  "foryou.glitch",
+  "daily.delulu",
+  "scrollgod",
+  "cap.or.fact",
+  "mid.tok",
+  "chronically.online",
+  "fr.nofr",
+  "npc.freak",
+  "based.babe",
 ];
 
 // Tableau de commentaires aléatoires Gen Z TikTok
@@ -81,6 +155,59 @@ const RANDOM_COMMENTS = [
   "would u date someone with a weird laugh ?",
   "is this oversharing or nah ?",
   "is this the reason u single yes or no ?",
+  "tell me why this hit harder than my ex’s texts",
+  "ok but why is this so real ?",
+  "this unlocked a core memory",
+  "im not crying, you are 😭",
+  "ngl i needed to hear this today",
+  "this feels illegal to watch",
+  "i feel attacked personally 💀",
+  "why is this me every sunday night ?",
+  "do y’all ever feel like an npc too ?",
+  "is this a cry for help or just aesthetic ?",
+  "i showed this to my therapist 😭",
+  "this why i got commitment issues",
+  "my toxic trait is thinking this about me",
+  "this gave me goosebumps and trust issues",
+  "why this so relatable it hurts",
+  "proof we all living the same life fr",
+  "this boutta be my villain origin story",
+  "omg i thought i was the only one 😭",
+  "this literally me but in hd",
+  "i've never related to something so fast",
+  "some of y’all need therapy and wifi off",
+  "this got more plot than my life",
+  "im sending this to my situationship rn",
+  "why does this feel like a personal attack",
+  "add this to my 3am cry playlist pls",
+  "pov: u realize ur the problem",
+  "this is why i can’t have nice things",
+  "some of yall's fyp too accurate it's scary",
+  "i’ll pretend i didn’t see this for my sanity",
+  "this vid got me rethinking everything 💀",
+  "if u feel this, drink some water pls",
+  "i’m gonna make this my personality now",
+  "is this love or mental illness ?",
+  "this gave me rizz and anxiety",
+  "can someone check if i’m ok pls",
+  "not me relating a bit too much",
+  "me: healed. also me: sees this & breaks again",
+  "is it too late to soft block my ex ?",
+  "this comment section healing me fr",
+  "this gonna live rent-free in my head",
+  "do u think this applies to me or nah ?",
+  "tell me this ain’t peak gen z humor",
+  "i laughed, cried, and trauma-bonded here",
+  "we really all just mentally unwell huh",
+  "don’t scroll, your soulmate likes this comment",
+  "this why group chats be wildin",
+  "should i send this to him or no ?",
+  "i swear tiktok knows my whole life",
+  "he better see this and realize",
+  "y’all ever just overshare for vibes ?",
+  "i watched this like 7 times already",
+  "tell me why i saved this with tears in my eyes",
+  "this is the definition of chaotic energy",
 ];
 
 interface GenerateCommentResult {
@@ -89,6 +216,58 @@ interface GenerateCommentResult {
   error?: string;
   username?: string;
   comment?: string;
+}
+
+/**
+ * Télécharge une image d'utilisateur aléatoire depuis randomuser.me
+ */
+async function downloadRandomUserImage(): Promise<string> {
+  try {
+    console.log("🔽 Téléchargement d'une image utilisateur aléatoire...");
+
+    // Appeler l'API RandomUser.me
+    const response = await fetch("https://randomuser.me/api/");
+    const data = await response.json();
+
+    if (!data.results || data.results.length === 0) {
+      throw new Error("Aucun utilisateur retourné par l'API");
+    }
+
+    const user = data.results[0];
+    const imageUrl = user.picture.large; // Utiliser la grande image
+
+    console.log(`📸 URL de l'image: ${imageUrl}`);
+
+    // Télécharger l'image
+    const imageResponse = await fetch(imageUrl);
+    if (!imageResponse.ok) {
+      throw new Error(
+        `Erreur lors du téléchargement de l'image: ${imageResponse.status}`,
+      );
+    }
+
+    const imageBuffer = await imageResponse.arrayBuffer();
+
+    // Sauvegarder l'image temporairement
+    const tempImagePath = path.join(
+      process.cwd(),
+      "public",
+      "temp",
+      "random-user.jpg",
+    );
+
+    // Créer le dossier temp s'il n'existe pas
+    await fs.mkdir(path.dirname(tempImagePath), { recursive: true });
+
+    await fs.writeFile(tempImagePath, Buffer.from(imageBuffer));
+
+    console.log(`✅ Image sauvegardée: ${tempImagePath}`);
+
+    return tempImagePath;
+  } catch (error) {
+    console.error("❌ Erreur lors du téléchargement de l'image:", error);
+    throw error;
+  }
 }
 
 /**
@@ -147,6 +326,7 @@ async function waitForElement(
  */
 export async function generateTikTokComment(): Promise<GenerateCommentResult> {
   let browser: Browser | null = null;
+  let tempImagePath: string | null = null;
 
   try {
     console.log("🚀 Démarrage de la génération de commentaire TikTok...");
@@ -164,6 +344,9 @@ export async function generateTikTokComment(): Promise<GenerateCommentResult> {
 
     console.log(`📝 Pseudo généré: ${username}`);
     console.log(`💬 Commentaire généré: ${comment}`);
+
+    // Télécharger une image d'utilisateur aléatoire
+    tempImagePath = await downloadRandomUserImage();
 
     // Supprimer l'ancienne image s'elle existe
     await removeOldImage(outputPath);
@@ -270,32 +453,64 @@ export async function generateTikTokComment(): Promise<GenerateCommentResult> {
       throw new Error("Impossible de remplir le champ commentaire");
     }
 
-    // Cliquer sur le bouton "Randomize" pour générer une photo de profil
-    console.log("🎲 Génération de la photo de profil...");
-    const randomizeSelectors = [
-      'button:has-text("Randomize")',
-      'button:has-text("Random")',
-      '[data-testid*="randomize"]',
-      'button[title*="random" i]',
-      'button >> text="Randomize"',
+    // Uploader l'image d'utilisateur aléatoire
+    console.log("📤 Upload de l'image d'utilisateur aléatoire...");
+    const uploadSelectors = [
+      'input[type="file"]',
+      'button:has-text("Upload")',
+      'button:has-text("upload")',
+      '[data-testid*="upload"]',
+      'button[title*="upload" i]',
+      ".upload-btn",
+      "#upload-btn",
     ];
 
-    let randomizeClicked = false;
-    for (const selector of randomizeSelectors) {
-      try {
-        const element = page.locator(selector).first();
-        if (await element.isVisible({ timeout: 3000 })) {
-          await element.click();
-          await page.waitForTimeout(2000); // Attendre la génération
-          randomizeClicked = true;
-          break;
-        }
-      } catch {}
+    let uploadSuccess = false;
+
+    // D'abord essayer de trouver un input file
+    try {
+      const fileInput = page.locator('input[type="file"]').first();
+      if (
+        (await fileInput.isVisible({ timeout: 3000 })) ||
+        (await fileInput.count()) > 0
+      ) {
+        await fileInput.setInputFiles(tempImagePath);
+        await page.waitForTimeout(3000); // Attendre l'upload
+        uploadSuccess = true;
+        console.log("✅ Image uploadée via input file");
+      }
+    } catch (error) {
+      console.log("⚠️ Input file non trouvé, recherche du bouton Upload...");
     }
 
-    if (!randomizeClicked) {
+    // Si l'input file n'a pas marché, essayer les boutons Upload
+    if (!uploadSuccess) {
+      for (const selector of uploadSelectors.slice(1)) {
+        // Skip input[type="file"] déjà testé
+        try {
+          const element = page.locator(selector).first();
+          if (await element.isVisible({ timeout: 3000 })) {
+            await element.click();
+
+            // Attendre qu'un input file apparaisse après le clic
+            await page.waitForTimeout(1000);
+
+            const fileInput = page.locator('input[type="file"]').first();
+            if ((await fileInput.count()) > 0) {
+              await fileInput.setInputFiles(tempImagePath);
+              await page.waitForTimeout(3000);
+              uploadSuccess = true;
+              console.log(`✅ Image uploadée via bouton: ${selector}`);
+              break;
+            }
+          }
+        } catch {}
+      }
+    }
+
+    if (!uploadSuccess) {
       console.log(
-        "⚠️ Bouton Randomize non trouvé, utilisation de la photo par défaut",
+        "⚠️ Bouton Upload non trouvé, utilisation de la photo par défaut",
       );
     }
 
@@ -367,6 +582,16 @@ export async function generateTikTokComment(): Promise<GenerateCommentResult> {
   } finally {
     if (browser) {
       await browser.close();
+    }
+
+    // Nettoyer l'image temporaire
+    if (tempImagePath) {
+      try {
+        await fs.unlink(tempImagePath);
+        console.log("🗑️ Image temporaire supprimée");
+      } catch (error) {
+        console.log("⚠️ Impossible de supprimer l'image temporaire:", error);
+      }
     }
   }
 }
