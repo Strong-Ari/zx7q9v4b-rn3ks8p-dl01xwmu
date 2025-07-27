@@ -72,6 +72,7 @@
     "render:fast": "npm run simulate && remotion render --concurrency=2 --every-nth-frame=2",
     "encode:tiktok": "./scripts/encode-tiktok.sh",
     "test:midi": "npx tsx scripts/test-midi-system.ts",
+    "test:audio": "npx tsx scripts/test-simple-audio.ts",
     "select:midi": "npx tsx scripts/select-midi-for-render.ts"
   }
 }
