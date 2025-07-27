@@ -80,7 +80,7 @@ class PhysicsEngine {
 
         if (ballBody && circleBody) {
           const circleId = parseInt(circleBody.label.split("_")[1]);
-          const circle = this.state.circles[circleId];
+          const circle = this.state.circles.find(c => c.id === circleId);
 
           if (!circle.isExploding) {
             const timeInSeconds = this.frameCount / GAME_CONFIG.FPS;
@@ -374,7 +374,7 @@ class PhysicsEngine {
   }
 
   public removeCircleSegments(circleId: number) {
-    const circle = this.state.circles[circleId];
+    const circle = this.state.circles.find(c => c.id === circleId);
     if (circle && !circle.isExploding) {
       Matter.World.remove(this.world, circle.segments);
       circle.isExploding = true;
