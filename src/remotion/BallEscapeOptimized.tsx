@@ -11,7 +11,6 @@ import { SemiCircle } from "../components/SemiCircle";
 import { Scoreboard, Timer } from "../components/UI";
 import { TikTokComment } from "./TikTokComment/TikTokComment";
 import { WinnerAnimation } from "../components/WinnerAnimation";
-import { useMidiPlayer } from "../hooks/useMidiPlayer";
 import { useBakedPhysics, useBakedCircleData } from "../hooks/useBakedPhysics";
 import type { SimulationData } from "../../types/simulation";
 
@@ -30,14 +29,13 @@ export const BallEscapeOptimized: React.FC<BallEscapeOptimizedProps> = ({
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const { playCollisionSound } = useMidiPlayer();
 
   // Calculer le temps écoulé en secondes
   const timeElapsed = frame / fps;
   const timeLeft = Math.max(0, GAME_CONFIG.DURATION_IN_SECONDS - timeElapsed);
 
   // ✅ NOUVEAU: Utiliser les données précalculées au lieu de la physique en temps réel
-  const gameState = useBakedPhysics(simulationData, playCollisionSound);
+  const gameState = useBakedPhysics(simulationData);
   const circleData = useBakedCircleData(simulationData);
 
   // Déterminer le gagnant

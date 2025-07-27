@@ -35,8 +35,7 @@ interface GameStateCompat {
  * au lieu de simuler Matter.js en temps réel
  */
 export const useBakedPhysics = (
-  simulationData: SimulationData,
-  onCollisionSound?: (type: "BALL_CIRCLE" | "BALL_BALL") => void
+  simulationData: SimulationData
 ): GameStateCompat => {
   const frame = useCurrentFrame();
 
@@ -75,26 +74,7 @@ export const useBakedPhysics = (
     return simulationData.frames[prevIndex];
   }, [frame, simulationData]);
 
-  // Jouer les sons de collision si nécessaire
-  useMemo(() => {
-    if (!onCollisionSound || !previousFrameData || frame <= 0) return;
-
-    const current = currentFrameData;
-    const previous = previousFrameData;
-
-    // Détecter les nouvelles explosions de cercles
-    const newExplosions = current.circles.filter((circle, index) => {
-      const prevCircle = previous.circles[index];
-      return circle.isExploding && !prevCircle?.isExploding;
-    });
-
-    if (newExplosions.length > 0) {
-      onCollisionSound("BALL_CIRCLE");
-    }
-
-    // Note: Les collisions balle-balle sont plus difficiles à détecter dans les données précalculées
-    // Elles pourraient être ajoutées au format de données si nécessaire
-  }, [currentFrameData, previousFrameData, onCollisionSound, frame]);
+  // (Supprimer le paramètre onCollisionSound et toute logique associée)
 
   // Convertir les données au format attendu par les composants existants
   return useMemo((): GameStateCompat => {

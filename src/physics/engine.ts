@@ -9,6 +9,8 @@ interface PhysicsState {
     segments: Matter.Body[];
     isExploding: boolean;
     explosionColor: string;
+    gapAngle: number;
+    gapRotation: number;
   }>;
 }
 
@@ -75,6 +77,7 @@ class PhysicsEngine {
             const currentRotation =
               baseRotation +
               timeInSeconds * GAME_CONFIG.SPIRAL_ROTATION_SPEED * 360;
+            const effectiveRotation = (currentRotation + circle.gapRotation) % 360;
 
             const centerX = GAME_CONFIG.VIDEO_WIDTH / 2;
             const centerY = GAME_CONFIG.VIDEO_HEIGHT / 2;
@@ -87,8 +90,8 @@ class PhysicsEngine {
               Math.PI;
 
             const normalizedBallAngle = (ballAngle + 360) % 360;
-            const gapStart = currentRotation % 360;
-            const gapEnd = (gapStart + GAME_CONFIG.CIRCLE_GAP_MAX_ANGLE) % 360;
+            const gapStart = effectiveRotation % 360;
+            const gapEnd = (gapStart + circle.gapAngle) % 360;
 
             const isInGap =
               gapStart <= gapEnd
@@ -323,18 +326,19 @@ class PhysicsEngine {
         GAME_CONFIG.CIRCLE_GAP_MIN_ANGLE +
         Math.random() *
           (GAME_CONFIG.CIRCLE_GAP_MAX_ANGLE - GAME_CONFIG.CIRCLE_GAP_MIN_ANGLE);
+      const gapRotation = Math.random() * 360;
 
       for (let j = 0; j < segmentCount; j++) {
         const angle = (j * 360) / segmentCount;
         if (angle < 360 - gapAngle) {
           const segment = Matter.Bodies.rectangle(
-            centerX + radius * Math.cos((angle * Math.PI) / 180),
-            centerY + radius * Math.sin((angle * Math.PI) / 180),
+            centerX + radius * Math.cos(((angle + gapRotation) * Math.PI) / 180),
+            centerY + radius * Math.sin(((angle + gapRotation) * Math.PI) / 180),
             radius * 0.15, // Augmenter légèrement la largeur des segments
             GAME_CONFIG.CIRCLE_STROKE_WIDTH * 1.5, // Augmenter légèrement l'épaisseur
             {
               isStatic: true,
-              angle: (angle * Math.PI) / 180,
+              angle: ((angle + gapRotation) * Math.PI) / 180,
               label: `circle_${i}_segment_${j}`,
               render: {
                 fillStyle: GAME_CONFIG.COLORS.CIRCLE_COLOR,
@@ -357,6 +361,8 @@ class PhysicsEngine {
         segments,
         isExploding: false,
         explosionColor: GAME_CONFIG.COLORS.YES_BALL,
+        gapAngle,
+        gapRotation,
       });
     }
 
