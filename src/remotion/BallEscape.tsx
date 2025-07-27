@@ -12,15 +12,15 @@ import { SemiCircle } from "../components/SemiCircle";
 import { Scoreboard, Timer } from "../components/UI";
 import { TikTokComment } from "./TikTokComment/TikTokComment";
 import { WinnerAnimation } from "../components/WinnerAnimation";
-import { MidiDebugInfo } from "../components/MidiDebugInfo";
-import { useMidiPlayer } from "../hooks/useMidiPlayer";
+import { AudioDebugInfo } from "../components/AudioDebugInfo";
+import { useSimpleAudio } from "../hooks/useSimpleAudio";
 import { usePhysics } from "../hooks/usePhysics";
 
 export const BallEscape: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const midiPlayer = useMidiPlayer();
-  const { playCollisionSound } = midiPlayer;
+  const audioPlayer = useSimpleAudio();
+  const { playCollisionSound } = audioPlayer;
 
   // Calculer le temps écoulé en secondes
   const timeElapsed = frame / fps;
@@ -110,12 +110,12 @@ export const BallEscape: React.FC = () => {
         />
       )}
 
-      {/* Note: L'audio MIDI est géré par Tone.js dans le navigateur
+      {/* Note: L'audio simple est géré par Tone.js dans le navigateur
           et sera audible dans le studio et potentiellement dans le rendu
           selon les capacités du navigateur */}
 
-      {/* Debug MIDI (seulement en mode développement) */}
-      <MidiDebugInfo show={true} position="bottom-right" />
+      {/* Debug Audio (seulement en mode développement) */}
+      <AudioDebugInfo show={true} position="bottom-right" />
     </AbsoluteFill>
   );
 };
