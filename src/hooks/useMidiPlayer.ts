@@ -149,18 +149,17 @@ export const useMidiPlayer = () => {
   }, [state.isInitialized, state.currentNoteIndex]);
 
   /**
-   * Joue un son pour une collision (utilise la note suivante)
+   * Joue un son pour une collision (ancien système, simple beep)
    */
-  const playCollisionSound = useCallback(
-    (type: CollisionType): void => {
-      // Pour les collisions, on joue simplement la note suivante
-      playNextNote();
-
-      // Log pour le debug
-      console.log(`[useMidiPlayer] Collision ${type} -> note MIDI jouée`);
-    },
-    [playNextNote],
-  );
+  const playCollisionSound = useCallback((type: CollisionType): void => {
+    // On joue un beep différent selon le type de collision
+    if (type === "BALL_CIRCLE") {
+      // Fréquence différente pour chaque type de balle
+      remotionAudioPlayer.playFrequency(523.25, 0.15, 0.7); // Do# aigu
+    } else if (type === "BALL_BALL") {
+      remotionAudioPlayer.playFrequency(329.63, 0.18, 0.8); // Mi
+    }
+  }, []);
 
   /**
    * Reset la séquence MIDI au début

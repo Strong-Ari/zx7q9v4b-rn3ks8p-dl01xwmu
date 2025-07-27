@@ -1,7 +1,11 @@
 import { useMemo } from "react";
 import { useCurrentFrame } from "remotion";
 import { GAME_CONFIG } from "../constants/game";
-import type { BakedGameState, SimulationData, BallData } from "../../types/simulation";
+import type {
+  BakedGameState,
+  SimulationData,
+  BallData,
+} from "../../types/simulation";
 
 interface Position {
   x: number;
@@ -36,7 +40,6 @@ interface GameStateCompat {
  */
 export const useBakedPhysics = (
   simulationData: SimulationData,
-  onCollisionSound?: (type: "BALL_CIRCLE" | "BALL_BALL") => void
 ): GameStateCompat => {
   const frame = useCurrentFrame();
 
@@ -75,26 +78,7 @@ export const useBakedPhysics = (
     return simulationData.frames[prevIndex];
   }, [frame, simulationData]);
 
-  // Jouer les sons de collision si nécessaire
-  useMemo(() => {
-    if (!onCollisionSound || !previousFrameData || frame <= 0) return;
-
-    const current = currentFrameData;
-    const previous = previousFrameData;
-
-    // Détecter les nouvelles explosions de cercles
-    const newExplosions = current.circles.filter((circle, index) => {
-      const prevCircle = previous.circles[index];
-      return circle.isExploding && !prevCircle?.isExploding;
-    });
-
-    if (newExplosions.length > 0) {
-      onCollisionSound("BALL_CIRCLE");
-    }
-
-    // Note: Les collisions balle-balle sont plus difficiles à détecter dans les données précalculées
-    // Elles pourraient être ajoutées au format de données si nécessaire
-  }, [currentFrameData, previousFrameData, onCollisionSound, frame]);
+  // (Supprimer le paramètre onCollisionSound et toute logique associée)
 
   // Convertir les données au format attendu par les composants existants
   return useMemo((): GameStateCompat => {
@@ -128,12 +112,14 @@ export const useBakedCircleData = (simulationData: SimulationData) => {
 
   return useMemo(() => {
     const frameIndex = Math.min(frame, simulationData.frames.length - 1);
-    const frameData = simulationData.frames[frameIndex] || simulationData.frames[0];
-    
+    const frameData =
+      simulationData.frames[frameIndex] || simulationData.frames[0];
+
     return frameData.circles.map((circle) => ({
       ...circle,
       // Calculer le radius basé sur l'ID (même logique qu'avant)
-      radius: GAME_CONFIG.MIN_CIRCLE_RADIUS +
+      radius:
+        GAME_CONFIG.MIN_CIRCLE_RADIUS +
         (circle.id *
           (GAME_CONFIG.MAX_CIRCLE_RADIUS - GAME_CONFIG.MIN_CIRCLE_RADIUS)) /
           GAME_CONFIG.SPIRAL_DENSITY,
