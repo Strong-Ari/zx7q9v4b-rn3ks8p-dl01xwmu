@@ -4,8 +4,12 @@ import { GAME_CONFIG } from "../constants/game";
 interface PhysicsState {
   yesBall: Matter.Body;
   noBall: Matter.Body;
+  yesBallRadius: number;
+  noBallRadius: number;
   circles: Array<{
     id: number;
+    radius: number;
+    appearTime: number;
     segments: Matter.Body[];
     isExploding: boolean;
     explosionColor: string;
@@ -16,6 +20,15 @@ class PhysicsEngine {
   private engine: Matter.Engine;
   private world: Matter.World;
   private state: PhysicsState;
+  private shrinkSpeed = 20; // px/sec
+  private interval = 2; // secondes entre chaque cercle
+  private initialRings = 3; // nombre de cercles présents au début
+  private maxCircles = GAME_CONFIG.SPIRAL_DENSITY;
+  private minRadius = GAME_CONFIG.BALL_RADIUS_MIN;
+  private maxRadius = GAME_CONFIG.MAX_CIRCLE_RADIUS;
+  private minBallRadius = GAME_CONFIG.BALL_RADIUS_MIN;
+  private nextCircleId = 0;
+  private lastCircleAppearTime = 0;
   private collisionHandlers: {
     onBallCircleCollision: (ballId: string, circleId: number) => void;
     onBallBallCollision: () => void;
@@ -199,6 +212,10 @@ class PhysicsEngine {
       y: -Math.sin(angle) * initialSpeed,
     });
 
+    // Initialiser le rayon courant des balles
+    const yesBallRadius = GAME_CONFIG.BALL_RADIUS;
+    const noBallRadius = GAME_CONFIG.BALL_RADIUS;
+
     // Créer les murs invisibles pour contenir les balles
     const wallThickness = 50;
     const walls = [
@@ -236,8 +253,15 @@ class PhysicsEngine {
       ),
     ];
 
-    // Créer les cercles avec leurs segments
-    const circles = this.createCircles();
+    // Créer les cercles initiaux
+    const circles = [];
+    for (let i = 0; i < this.initialRings; i++) {
+      const appearTime = 0;
+      const radius = this.maxRadius - i * ((this.maxRadius - this.minRadius) / (this.maxCircles - 1));
+      circles.push(this.createCircle(i, radius, appearTime));
+      this.nextCircleId = i + 1;
+    }
+    this.lastCircleAppearTime = 0;
 
     // Ajouter tous les corps au monde
     Matter.World.add(this.world, [yesBall, noBall, ...walls]);
@@ -248,6 +272,8 @@ class PhysicsEngine {
     return {
       yesBall,
       noBall,
+      yesBallRadius,
+      noBallRadius,
       circles,
     };
   }
@@ -256,11 +282,67 @@ class PhysicsEngine {
     // FIX: Delta time fixe pour cohérence Remotion (33.33ms à 30fps)
     const deltaTime = 1000 / GAME_CONFIG.FPS;
     this.frameCount = frame;
+    const time = frame / GAME_CONFIG.FPS;
+
+    // Apparition de nouveaux cercles à intervalle régulier
+    if (
+      this.nextCircleId < this.maxCircles &&
+      time - this.lastCircleAppearTime >= this.interval
+    ) {
+      const radius = this.maxRadius - this.nextCircleId * ((this.maxRadius - this.minRadius) / (this.maxCircles - 1));
+      const appearTime = time;
+      const circle = this.createCircle(this.nextCircleId, radius, appearTime);
+      this.state.circles.push(circle);
+      Matter.World.add(this.world, circle.segments);
+      this.lastCircleAppearTime = time;
+      this.nextCircleId++;
+    }
+
+    // Rétrécissement des cercles et suppression si rayon nul
+    let minAllowedRadius = this.minBallRadius;
+    let anyBallAtMin =
+      this.state.yesBallRadius <= this.minBallRadius ||
+      this.state.noBallRadius <= this.minBallRadius;
+
+    this.state.circles = this.state.circles.filter((circle) => {
+      if (circle.isExploding) return false;
+      // Calcul du nouveau rayon
+      let newRadius = circle.radius;
+      if (!anyBallAtMin) {
+        newRadius = Math.max(
+          this.minRadius,
+          circle.radius - this.shrinkSpeed * deltaTime * 0.001
+        );
+      }
+      // Si le rayon devient inférieur à la limite minimale, on le supprime
+      if (newRadius <= minAllowedRadius) {
+        Matter.World.remove(this.world, circle.segments);
+        return false;
+      }
+      // Mettre à jour les segments pour coller au nouveau rayon
+      Matter.World.remove(this.world, circle.segments);
+      circle.radius = newRadius;
+      circle.segments = this.createCircleSegments(circle.id, newRadius);
+      Matter.World.add(this.world, circle.segments);
+      return true;
+    });
+
+    // Rétrécissement des balles
+    if (!anyBallAtMin) {
+      this.state.yesBallRadius = Math.max(
+        this.minBallRadius,
+        this.state.yesBallRadius - this.shrinkSpeed * deltaTime * 0.001
+      );
+      this.state.noBallRadius = Math.max(
+        this.minBallRadius,
+        this.state.noBallRadius - this.shrinkSpeed * deltaTime * 0.001
+      );
+      // Mettre à jour la taille physique des balles
+      Matter.Body.set(this.state.yesBall, { circleRadius: this.state.yesBallRadius });
+      Matter.Body.set(this.state.noBall, { circleRadius: this.state.noBallRadius });
+    }
 
     Matter.Engine.update(this.engine, deltaTime);
-
-    // FIX: Supprimer la mise à jour manuelle des segments - géré par SemiCircle.tsx
-    // Les segments restent statiques, la rotation est purement visuelle
 
     // FIX: Contraintes de vitesse simplifiées et plus stables
     const bodies = [this.state.yesBall, this.state.noBall];
@@ -304,63 +386,54 @@ class PhysicsEngine {
     Matter.Engine.clear(this.engine);
   }
 
-  private createCircles() {
-    const circles: PhysicsState["circles"] = [];
+  private createCircle(id: number, radius: number, appearTime: number) {
+    return {
+      id,
+      radius,
+      appearTime,
+      segments: this.createCircleSegments(id, radius),
+      isExploding: false,
+      explosionColor: GAME_CONFIG.COLORS.YES_BALL,
+    };
+  }
+
+  private createCircleSegments(id: number, radius: number) {
     const centerX = GAME_CONFIG.VIDEO_WIDTH / 2;
     const centerY = GAME_CONFIG.VIDEO_HEIGHT / 2;
-
-    // Augmenter l'espacement entre les cercles
-    const radiusStep =
-      (GAME_CONFIG.MAX_CIRCLE_RADIUS - GAME_CONFIG.MIN_CIRCLE_RADIUS) /
-      (GAME_CONFIG.SPIRAL_DENSITY - 1);
-
-    for (let i = 0; i < GAME_CONFIG.SPIRAL_DENSITY; i++) {
-      const radius = GAME_CONFIG.MIN_CIRCLE_RADIUS + radiusStep * i * 1.5; // Augmentation de 50% de l'espacement
-
-      const segments: Matter.Body[] = [];
-      const segmentCount = 36;
-      const gapAngle =
-        GAME_CONFIG.CIRCLE_GAP_MIN_ANGLE +
-        Math.random() *
-          (GAME_CONFIG.CIRCLE_GAP_MAX_ANGLE - GAME_CONFIG.CIRCLE_GAP_MIN_ANGLE);
-
-      for (let j = 0; j < segmentCount; j++) {
-        const angle = (j * 360) / segmentCount;
-        if (angle < 360 - gapAngle) {
-          const segment = Matter.Bodies.rectangle(
-            centerX + radius * Math.cos((angle * Math.PI) / 180),
-            centerY + radius * Math.sin((angle * Math.PI) / 180),
-            radius * 0.15, // Augmenter légèrement la largeur des segments
-            GAME_CONFIG.CIRCLE_STROKE_WIDTH * 1.5, // Augmenter légèrement l'épaisseur
-            {
-              isStatic: true,
-              angle: (angle * Math.PI) / 180,
-              label: `circle_${i}_segment_${j}`,
-              render: {
-                fillStyle: GAME_CONFIG.COLORS.CIRCLE_COLOR,
-              },
-              collisionFilter: {
-                category: 0x0001,
-                mask: 0x0002,
-              },
-              chamfer: { radius: 2 }, // Arrondir légèrement les bords pour éviter les accrochages
-              friction: 0.1,
-              restitution: 0.5,
+    const segments: Matter.Body[] = [];
+    const segmentCount = 36;
+    const gapAngle =
+      GAME_CONFIG.CIRCLE_GAP_MIN_ANGLE +
+      Math.random() *
+        (GAME_CONFIG.CIRCLE_GAP_MAX_ANGLE - GAME_CONFIG.CIRCLE_GAP_MIN_ANGLE);
+    for (let j = 0; j < segmentCount; j++) {
+      const angle = (j * 360) / segmentCount;
+      if (angle < 360 - gapAngle) {
+        const segment = Matter.Bodies.rectangle(
+          centerX + radius * Math.cos((angle * Math.PI) / 180),
+          centerY + radius * Math.sin((angle * Math.PI) / 180),
+          radius * 0.15,
+          GAME_CONFIG.CIRCLE_STROKE_WIDTH * 1.5,
+          {
+            isStatic: true,
+            angle: (angle * Math.PI) / 180,
+            label: `circle_${id}_segment_${j}`,
+            render: {
+              fillStyle: GAME_CONFIG.COLORS.CIRCLE_COLOR,
             },
-          );
-          segments.push(segment);
-        }
+            collisionFilter: {
+              category: 0x0001,
+              mask: 0x0002,
+            },
+            chamfer: { radius: 2 },
+            friction: 0.1,
+            restitution: 0.5,
+          },
+        );
+        segments.push(segment);
       }
-
-      circles.push({
-        id: i,
-        segments,
-        isExploding: false,
-        explosionColor: GAME_CONFIG.COLORS.YES_BALL,
-      });
     }
-
-    return circles;
+    return segments;
   }
 }
 

@@ -15,7 +15,6 @@ import { WinnerAnimation } from "../components/WinnerAnimation";
 import { MidiDebugInfo } from "../components/MidiDebugInfo";
 import { useMidiPlayer } from "../hooks/useMidiPlayer";
 import { usePhysics } from "../hooks/usePhysics";
-import { useDynamicCircles } from "../hooks/useDynamicCircles";
 
 export const BallEscape: React.FC = () => {
   const frame = useCurrentFrame();
@@ -29,17 +28,6 @@ export const BallEscape: React.FC = () => {
 
   // Utiliser le moteur physique
   const gameState = usePhysics(playCollisionSound);
-
-  // Hook pour gérer les cercles dynamiques (apparition + rétrécissement)
-  const dynamicCircles = useDynamicCircles({
-    frame,
-    fps,
-    shrinkSpeed: 20, // px/sec
-    interval: 2, // secondes entre chaque cercle
-    maxCircles: GAME_CONFIG.SPIRAL_DENSITY,
-    minRadius: GAME_CONFIG.MIN_CIRCLE_RADIUS,
-    maxRadius: GAME_CONFIG.MAX_CIRCLE_RADIUS,
-  });
 
   // Déterminer le gagnant
   const winner = useMemo(() => {
@@ -74,8 +62,8 @@ export const BallEscape: React.FC = () => {
 
       {/* Zone de jeu */}
       <svg width="100%" height="100%">
-        {/* Cercles dynamiques */}
-        {dynamicCircles.map((circle) => (
+        {/* Cercles synchronisés avec la physique */}
+        {gameState.circles.map((circle) => (
           <SemiCircle
             key={circle.id}
             radius={circle.radius}
@@ -86,8 +74,8 @@ export const BallEscape: React.FC = () => {
                   GAME_CONFIG.CIRCLE_GAP_MIN_ANGLE)
             }
             gapRotation={random(`circle-rotation-${circle.id}`) * 360}
-            isExploding={gameState.circles[circle.id]?.isExploding}
-            explosionColor={gameState.circles[circle.id]?.explosionColor}
+            isExploding={circle.isExploding}
+            explosionColor={circle.explosionColor}
             baseRotation={(circle.id * 360) / GAME_CONFIG.SPIRAL_DENSITY}
           />
         ))}
@@ -98,12 +86,14 @@ export const BallEscape: React.FC = () => {
           position={gameState.yesBall.position}
           velocity={gameState.yesBall.velocity}
           trail={gameState.yesBall.trail}
+          radius={gameState.yesBall.radius}
         />
         <Ball
           type="no"
           position={gameState.noBall.position}
           velocity={gameState.noBall.velocity}
           trail={gameState.noBall.trail}
+          radius={gameState.noBall.radius}
         />
       </svg>
 

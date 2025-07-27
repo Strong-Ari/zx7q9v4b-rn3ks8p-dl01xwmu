@@ -7,6 +7,7 @@ export const GAME_CONFIG = {
 
   // Configuration des balles - Paramètres optimisés
   BALL_RADIUS: 35,
+  BALL_RADIUS_MIN: 18, // Rayon minimal pour les balles et les cercles
   BALL_SPEED: 6, // Augmenté légèrement pour plus de dynamisme
   TRAIL_LENGTH: 15, // Augmenté pour des traînées plus visibles
   BALL_MASS: 1,

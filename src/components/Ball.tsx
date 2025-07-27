@@ -12,6 +12,7 @@ interface BallProps {
   position: Position;
   velocity: Position;
   trail: Position[];
+  radius: number;
 }
 
 export const Ball: React.FC<BallProps> = ({
@@ -19,6 +20,7 @@ export const Ball: React.FC<BallProps> = ({
   position,
   velocity,
   trail,
+  radius,
 }) => {
   const frame = useCurrentFrame();
 
@@ -79,12 +81,12 @@ export const Ball: React.FC<BallProps> = ({
 
       {/* Balle principale */}
       <g transform={`translate(${position.x}, ${position.y}) scale(${scale})`}>
-        <circle r={GAME_CONFIG.BALL_RADIUS} fill={color} filter="url(#glow)" />
+        <circle r={radius} fill={color} filter="url(#glow)" />
         <text
           fill={GAME_CONFIG.COLORS.TEXT_PRIMARY}
           textAnchor="middle"
           dominantBaseline="middle"
-          fontSize={GAME_CONFIG.BALL_RADIUS * 0.8}
+          fontSize={radius * 0.8}
           fontWeight="bold"
           style={{
             textTransform: "uppercase",

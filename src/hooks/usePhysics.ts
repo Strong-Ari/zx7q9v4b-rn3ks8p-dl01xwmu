@@ -13,14 +13,17 @@ interface GameState {
     position: Position;
     velocity: Position;
     trail: Position[];
+    radius: number;
   };
   noBall: {
     position: Position;
     velocity: Position;
     trail: Position[];
+    radius: number;
   };
   circles: Array<{
     id: number;
+    radius: number;
     isExploding: boolean;
     explosionColor: string;
   }>;
@@ -40,11 +43,13 @@ export const usePhysics = (
       position: { x: 0, y: 0 },
       velocity: { x: 0, y: 0 },
       trail: [],
+      radius: GAME_CONFIG.BALL_RADIUS,
     },
     noBall: {
       position: { x: 0, y: 0 },
       velocity: { x: 0, y: 0 },
       trail: [],
+      radius: GAME_CONFIG.BALL_RADIUS,
     },
     circles: [],
     scores: { yes: 0, no: 0 },
@@ -98,9 +103,12 @@ export const usePhysics = (
       ...prev,
       circles: physicsState.circles.map((circle) => ({
         id: circle.id,
+        radius: circle.radius,
         isExploding: circle.isExploding,
         explosionColor: circle.explosionColor,
       })),
+      yesBall: { ...prev.yesBall, radius: physicsState.yesBallRadius },
+      noBall: { ...prev.noBall, radius: physicsState.noBallRadius },
     }));
 
     return () => {
@@ -125,6 +133,7 @@ export const usePhysics = (
       const updateBallState = (
         currentBall: GameState["yesBall"],
         physicsBall: Matter.Body,
+        radius: number
       ) => {
         const newPosition = {
           x: physicsBall.position.x,
@@ -138,7 +147,7 @@ export const usePhysics = (
           Math.abs(newPosition.y - currentBall.trail[0].y) > 0.1;
 
         if (!hasPositionChanged) {
-          return currentBall; // Retourner l'état existant si pas de changement significatif
+          return { ...currentBall, radius };
         }
 
         // Calculer la traînée en fonction de la vitesse (optimisé)
@@ -161,13 +170,14 @@ export const usePhysics = (
           position: newPosition,
           velocity: physicsBall.velocity,
           trail: [newPosition, ...currentBall.trail.slice(0, trailLength - 1)],
+          radius,
         };
       };
 
       return {
         ...prev,
-        yesBall: updateBallState(prev.yesBall, physicsState.yesBall),
-        noBall: updateBallState(prev.noBall, physicsState.noBall),
+        yesBall: updateBallState(prev.yesBall, physicsState.yesBall, physicsState.yesBallRadius),
+        noBall: updateBallState(prev.noBall, physicsState.noBall, physicsState.noBallRadius),
       };
     });
   }, [frame]);
