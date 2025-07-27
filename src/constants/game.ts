@@ -24,7 +24,7 @@ export const GAME_CONFIG = {
   CIRCLE_SPACING: 35, // Réduit pour plus d'anneaux
   CIRCLE_STROKE_WIDTH: 9, // Réduit pour un look plus élégant
   SPIRAL_ROTATION_SPEED: 0.1, // Vitesse réduite pour une rotation plus lente et fluide
-  SPIRAL_DENSITY: 25, // Augmenté pour plus d'anneaux
+  SPIRAL_DENSITY: 35, // Encore plus d'anneaux
   CIRCLE_GRADIENT_START: "#4ade80",
   CIRCLE_GRADIENT_END: "#22d3ee",
 
