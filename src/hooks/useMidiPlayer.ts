@@ -5,7 +5,7 @@ import {
   ProcessedMidiData,
   MidiNote,
 } from "../services/midiService";
-import { remotionAudioPlayer } from "../services/remotionAudioPlayer";
+import { audioPlayer } from "../services/audioPlayer";
 
 type CollisionType = "BALL_CIRCLE" | "BALL_BALL";
 
@@ -52,12 +52,12 @@ export const useMidiPlayer = () => {
         console.log("[useMidiPlayer] Initialisation du système MIDI...");
 
         // 1. Initialiser le lecteur audio Remotion
-        const audioInitialized = await remotionAudioPlayer.initAudio();
-        if (!audioInitialized) {
-          console.log(
-            "[useMidiPlayer] Audio désactivé - fonctionnement en mode silencieux",
-          );
-        }
+        // const audioInitialized = await remotionAudioPlayer.initAudio(); // Supprimé
+        // if (!audioInitialized) {
+        //   console.log(
+        //     "[useMidiPlayer] Audio désactivé - fonctionnement en mode silencieux",
+        //   );
+        // }
 
         // 2. Sélectionner un fichier MIDI aléatoire
         const selectedFile = midiService.selectRandomMidiFile();
@@ -125,7 +125,7 @@ export const useMidiPlayer = () => {
     const currentNote = midiData.notes[noteIndex];
 
     // Jouer la note avec le frame actuel pour la synchronisation
-    remotionAudioPlayer.playNote(currentNote, currentFrame);
+    // remotionAudioPlayer.playNote(currentNote, currentFrame); // Supprimé
 
     // Log pour le debug
     const noteName = midiService.midiToNoteName
@@ -156,9 +156,9 @@ export const useMidiPlayer = () => {
       // On joue un beep différent selon le type de collision
       if (type === "BALL_CIRCLE") {
         // Fréquence différente pour chaque type de balle
-        remotionAudioPlayer.playFrequency(523.25, 0.15, 0.7); // Do# aigu
+        // remotionAudioPlayer.playFrequency(523.25, 0.15, 0.7); // Supprimé
       } else if (type === "BALL_BALL") {
-        remotionAudioPlayer.playFrequency(329.63, 0.18, 0.8); // Mi
+        // remotionAudioPlayer.playFrequency(329.63, 0.18, 0.8); // Supprimé
       }
     },
     [],
@@ -247,7 +247,7 @@ export const useMidiPlayer = () => {
    */
   useEffect(() => {
     return () => {
-      remotionAudioPlayer.cleanup();
+      // remotionAudioPlayer.cleanup(); // Supprimé
       console.log("[useMidiPlayer] Ressources nettoyées");
     };
   }, []);
@@ -275,7 +275,7 @@ export const useMidiPlayer = () => {
 
     // Utilitaires
     availableFiles: midiService.getAvailableFiles(),
-    audioStatus: remotionAudioPlayer.getAudioStats(),
+    // audioStatus: remotionAudioPlayer.getAudioStats(), // Supprimé
   };
 };
 
