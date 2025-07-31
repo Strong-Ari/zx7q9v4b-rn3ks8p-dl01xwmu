@@ -125,6 +125,32 @@ export class RemotionAudioPlayer {
   }
 
   /**
+   * Joue une fréquence spécifique (pour les sons de collision)
+   */
+  public playFrequency(frequency: number, duration: number, volume: number = 0.7): void {
+    if (!this.isRemotionEnvironment || !this.isInitialized || !this.synth) {
+      return;
+    }
+
+    try {
+      // Limiter la durée pour éviter les chevauchements
+      const safeDuration = Math.min(duration, 1.0);
+      const safeVolume = Math.max(0, Math.min(1, volume));
+
+      this.synth.triggerAttackRelease(frequency, safeDuration, undefined, safeVolume);
+
+      console.log(
+        `[RemotionAudioPlayer] Fréquence jouée: ${frequency.toFixed(1)}Hz - Durée: ${safeDuration}s - Volume: ${safeVolume}`,
+      );
+    } catch (error) {
+      console.error(
+        "[RemotionAudioPlayer] Erreur lors de la lecture de la fréquence:",
+        error,
+      );
+    }
+  }
+
+  /**
    * Génère un fichier audio synthétique pour une note (pour le rendu)
    */
   public generateNoteAudio(note: MidiNote, sampleRate = 44100): Float32Array {

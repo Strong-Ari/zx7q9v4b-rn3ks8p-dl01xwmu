@@ -33,11 +33,13 @@ export const BallEscape: React.FC = () => {
   const dynamicCircles = useDynamicCircles({
     frame,
     fps,
-    shrinkSpeed: 20, // px/sec
-    interval: 2, // secondes entre chaque cercle
+    shrinkSpeed: 15, // px/sec (réduit pour un rétrécissement plus lent)
+    interval: 0.5, // secondes entre chaque cercle (réduit pour plus de rings au début)
     maxCircles: GAME_CONFIG.SPIRAL_DENSITY,
     minRadius: GAME_CONFIG.MIN_CIRCLE_RADIUS,
     maxRadius: GAME_CONFIG.MAX_CIRCLE_RADIUS,
+    initialCircles: 8, // 8 cercles dès le début pour plus d'action immédiate
+    minShrinkRadius: 120, // Rayon minimum avant disparition (plus petit pour éviter l'accumulation)
   });
 
   // Déterminer le gagnant
