@@ -6,12 +6,13 @@ import {
   random,
 } from "remotion";
 import { GAME_CONFIG } from "../constants/game";
-import { useMemo } from "react";
+import { useMemo, useEffect, useState, useCallback } from "react";
 import { Ball } from "../components/Ball";
 import { SemiCircle } from "../components/SemiCircle";
 import { Scoreboard, Timer } from "../components/UI";
 import { TikTokComment } from "./TikTokComment/TikTokComment";
 import { WinnerAnimation } from "../components/WinnerAnimation";
+import { AudioInitOverlay } from "../components/AudioInitOverlay";
 import { useMidiPlayer } from "../hooks/useMidiPlayer";
 import { usePhysics } from "../hooks/usePhysics";
 import { useDynamicCircles } from "../hooks/useDynamicCircles";
@@ -20,7 +21,18 @@ export const BallEscape: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const midiPlayer = useMidiPlayer();
-  const { playCollisionSound } = midiPlayer;
+  const { playCollisionSound, forceReinitAudio } = midiPlayer;
+  const [audioReady, setAudioReady] = useState(false);
+
+  // Gestion de l'initialisation audio
+  const handleAudioReady = useCallback(async () => {
+    console.log("[BallEscape] Initialisation audio demandée...");
+    await forceReinitAudio();
+    setAudioReady(true);
+  }, [forceReinitAudio]);
+
+  // Vérifier si l'audio est prêt
+  const isAudioReady = audioReady || midiPlayer.audioStatus.isActive;
 
   // Calculer le temps écoulé en secondes
   const timeElapsed = frame / fps;
@@ -57,6 +69,11 @@ export const BallEscape: React.FC = () => {
         backgroundColor: GAME_CONFIG.COLORS.BACKGROUND,
       }}
     >
+      {/* Overlay d'initialisation audio */}
+      {/* <AudioInitOverlay
+        isVisible={!isAudioReady}
+        onAudioReady={handleAudioReady}
+      /> */}
       {/* Interface utilisateur */}
       <TikTokComment
         imagePath={commentImagePath}

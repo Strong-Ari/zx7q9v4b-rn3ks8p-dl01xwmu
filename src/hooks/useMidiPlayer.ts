@@ -240,6 +240,17 @@ export const useMidiPlayer = () => {
   }, [state.currentNoteIndex, state.totalNotes]);
 
   /**
+   * Force la réinitialisation audio (utile pour Remotion Studio)
+   */
+  const forceReinitAudio = useCallback(async (): Promise<void> => {
+    console.log("[useMidiPlayer] Forçage de la réinitialisation audio...");
+    const audioInitialized = await remotionAudioPlayer.forceReinit();
+    if (audioInitialized) {
+      console.log("[useMidiPlayer] Audio réinitialisé avec succès");
+    }
+  }, []);
+
+  /**
    * Nettoie les ressources au démontage
    */
   useEffect(() => {
@@ -252,15 +263,33 @@ export const useMidiPlayer = () => {
   // Auto-initialisation si pas encore fait
   useEffect(() => {
     if (!state.isInitialized && !state.isLoading && !initPromiseRef.current) {
-      initMidi();
+      // Délai pour s'assurer que Remotion Studio est prêt
+      const timer = setTimeout(() => {
+        initMidi();
+      }, 100);
+
+      return () => clearTimeout(timer);
     }
   }, [state.isInitialized, state.isLoading, initMidi]);
+
+  // Initialisation forcée au montage du composant
+  useEffect(() => {
+    const forceInit = async () => {
+      if (!state.isInitialized && !state.isLoading) {
+        console.log("[useMidiPlayer] Initialisation forcée au montage...");
+        await initMidi();
+      }
+    };
+
+    forceInit();
+  }, []); // Dépendances vides pour ne s'exécuter qu'au montage
 
   return {
     // Fonctions principales
     playCollisionSound,
     playNextNote,
     initMidi,
+    forceReinitAudio, // Nouvelle fonction pour forcer la réinitialisation
 
     // Gestion de la séquence
     resetSequence,
