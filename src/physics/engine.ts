@@ -79,8 +79,6 @@ class PhysicsEngine {
             // Utiliser la méthode utilitaire pour la cohérence
             const { currentRadius, currentRotation } =
               this.getCircleCurrentParams(circleId, timeInSeconds);
-            const effectiveRotation =
-              (currentRotation + circle.gapRotation) % 360;
 
             // Calculer l'angle de la balle dans le système local du cercle (comme dans le SVG)
             // 1. Position de la balle dans le système SVG (après translation)
@@ -88,20 +86,25 @@ class PhysicsEngine {
               x: ballBody.position.x - centerX,
               y: ballBody.position.y - centerY,
             };
-            
+
             // 2. Rotation inverse pour obtenir la position dans le système local du cercle
             const rotationRad = (-currentRotation * Math.PI) / 180;
             const ballInLocal = {
-              x: ballInSVG.x * Math.cos(rotationRad) - ballInSVG.y * Math.sin(rotationRad),
-              y: ballInSVG.x * Math.sin(rotationRad) + ballInSVG.y * Math.cos(rotationRad),
+              x:
+                ballInSVG.x * Math.cos(rotationRad) -
+                ballInSVG.y * Math.sin(rotationRad),
+              y:
+                ballInSVG.x * Math.sin(rotationRad) +
+                ballInSVG.y * Math.cos(rotationRad),
             };
-            
+
             // 3. Angle de la balle dans le système local (comme dans le SVG)
-            const localBallAngle = (Math.atan2(ballInLocal.y, ballInLocal.x) * 180) / Math.PI;
+            const localBallAngle =
+              (Math.atan2(ballInLocal.y, ballInLocal.x) * 180) / Math.PI;
             const normalizedLocalBallAngle = (localBallAngle + 360) % 360;
 
             // Calculer les limites du gap dans le système local
-            const gapStart = gapRotation % 360;
+            const gapStart = circle.gapRotation % 360;
             const gapEnd = (gapStart + circle.gapAngle) % 360;
 
             // Vérifier si la balle est dans le gap (dans le système local)
