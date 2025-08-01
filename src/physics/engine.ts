@@ -82,27 +82,35 @@ class PhysicsEngine {
             const effectiveRotation =
               (currentRotation + circle.gapRotation) % 360;
 
-            // Calculer l'angle de la balle par rapport au centre
-            const ballAngle =
-              (Math.atan2(
-                ballBody.position.y - centerY,
-                ballBody.position.x - centerX,
-              ) *
-                180) /
-              Math.PI;
-            const normalizedBallAngle = (ballAngle + 360) % 360;
+            // Calculer l'angle de la balle dans le système local du cercle (comme dans le SVG)
+            // 1. Position de la balle dans le système SVG (après translation)
+            const ballInSVG = {
+              x: ballBody.position.x - centerX,
+              y: ballBody.position.y - centerY,
+            };
+            
+            // 2. Rotation inverse pour obtenir la position dans le système local du cercle
+            const rotationRad = (-currentRotation * Math.PI) / 180;
+            const ballInLocal = {
+              x: ballInSVG.x * Math.cos(rotationRad) - ballInSVG.y * Math.sin(rotationRad),
+              y: ballInSVG.x * Math.sin(rotationRad) + ballInSVG.y * Math.cos(rotationRad),
+            };
+            
+            // 3. Angle de la balle dans le système local (comme dans le SVG)
+            const localBallAngle = (Math.atan2(ballInLocal.y, ballInLocal.x) * 180) / Math.PI;
+            const normalizedLocalBallAngle = (localBallAngle + 360) % 360;
 
-            // Calculer les limites du gap
-            const gapStart = effectiveRotation % 360;
+            // Calculer les limites du gap dans le système local
+            const gapStart = gapRotation % 360;
             const gapEnd = (gapStart + circle.gapAngle) % 360;
 
-            // Vérifier si la balle est dans le gap
+            // Vérifier si la balle est dans le gap (dans le système local)
             const isInGap =
               gapStart <= gapEnd
-                ? normalizedBallAngle >= gapStart &&
-                  normalizedBallAngle <= gapEnd
-                : normalizedBallAngle >= gapStart ||
-                  normalizedBallAngle <= gapEnd;
+                ? normalizedLocalBallAngle >= gapStart &&
+                  normalizedLocalBallAngle <= gapEnd
+                : normalizedLocalBallAngle >= gapStart ||
+                  normalizedLocalBallAngle <= gapEnd;
 
             // Vérifier si la balle est à la bonne distance du centre
             const ballDistance = Math.sqrt(
