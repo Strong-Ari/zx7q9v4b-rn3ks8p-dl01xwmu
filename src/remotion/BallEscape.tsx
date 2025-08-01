@@ -45,13 +45,13 @@ export const BallEscape: React.FC = () => {
   const dynamicCircles = useDynamicCircles({
     frame,
     fps,
-    shrinkSpeed: 15, // px/sec (réduit pour un rétrécissement plus lent)
+    shrinkSpeed: 10, // px/sec (encore plus lent pour plus d'opportunités)
     interval: 0.5, // secondes entre chaque cercle (réduit pour plus de rings au début)
     maxCircles: GAME_CONFIG.SPIRAL_DENSITY,
     minRadius: GAME_CONFIG.MIN_CIRCLE_RADIUS,
     maxRadius: GAME_CONFIG.MAX_CIRCLE_RADIUS,
     initialCircles: 8, // 8 cercles dès le début pour plus d'action immédiate
-    minShrinkRadius: 120, // Rayon minimum avant disparition (plus petit pour éviter l'accumulation)
+    minShrinkRadius: 250, // Rayon minimum ajusté pour un bon équilibre
   });
 
   // Déterminer le gagnant
@@ -93,22 +93,31 @@ export const BallEscape: React.FC = () => {
       {/* Zone de jeu */}
       <svg width="100%" height="100%">
         {/* Cercles dynamiques */}
-        {dynamicCircles.map((circle) => (
-          <SemiCircle
-            key={circle.id}
-            radius={circle.radius}
-            gapAngle={
-              GAME_CONFIG.CIRCLE_GAP_MIN_ANGLE +
+        {dynamicCircles.map((circle) => {
+          // Utiliser les mêmes gaps que la physique pour la synchronisation
+          const physicsCircle = gameState.circles[circle.id];
+          const gapAngle =
+            physicsCircle?.gapAngle ||
+            GAME_CONFIG.CIRCLE_GAP_MIN_ANGLE +
               random(`circle-gap-${circle.id}`) *
                 (GAME_CONFIG.CIRCLE_GAP_MAX_ANGLE -
-                  GAME_CONFIG.CIRCLE_GAP_MIN_ANGLE)
-            }
-            gapRotation={random(`circle-rotation-${circle.id}`) * 360}
-            isExploding={gameState.circles[circle.id]?.isExploding}
-            explosionColor={gameState.circles[circle.id]?.explosionColor}
-            baseRotation={(circle.id * 360) / GAME_CONFIG.SPIRAL_DENSITY}
-          />
-        ))}
+                  GAME_CONFIG.CIRCLE_GAP_MIN_ANGLE);
+          const gapRotation =
+            physicsCircle?.gapRotation ||
+            random(`circle-rotation-${circle.id}`) * 360;
+
+          return (
+            <SemiCircle
+              key={circle.id}
+              radius={circle.radius}
+              gapAngle={gapAngle}
+              gapRotation={gapRotation}
+              isExploding={physicsCircle?.isExploding}
+              explosionColor={physicsCircle?.explosionColor}
+              baseRotation={(circle.id * 360) / GAME_CONFIG.SPIRAL_DENSITY}
+            />
+          );
+        })}
 
         {/* Balles */}
         <Ball

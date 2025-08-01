@@ -31,7 +31,7 @@ export function useDynamicCircles({
   minRadius,
   maxRadius,
   initialCircles = 1, // Par défaut 1 cercle au début
-  minShrinkRadius = 150, // Rayon minimum avant arrêt du rétrécissement (par défaut 150px)
+  minShrinkRadius = 300, // Rayon minimum augmenté pour plus d'opportunités de cassage
 }: UseDynamicCirclesParams): DynamicCircle[] {
   // Temps écoulé en secondes
   const time = frame / fps;

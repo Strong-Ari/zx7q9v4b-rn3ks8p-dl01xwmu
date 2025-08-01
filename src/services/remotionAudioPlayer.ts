@@ -96,8 +96,8 @@ export class RemotionAudioPlayer {
 
       // Test audio pour confirmer que tout fonctionne
       setTimeout(() => {
-        this.playFrequency(440, 0.1, 0.3); // Test avec un La 440Hz
-      }, 100);
+        this.playFrequency(440, 0.2, 0.5); // Test avec un La 440Hz plus long et plus fort
+      }, 200);
 
       return true;
     } catch (error) {

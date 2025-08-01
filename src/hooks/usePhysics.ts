@@ -23,6 +23,8 @@ interface GameState {
     id: number;
     isExploding: boolean;
     explosionColor: string;
+    gapAngle: number;
+    gapRotation: number;
   }>;
   scores: {
     yes: number;
@@ -100,6 +102,8 @@ export const usePhysics = (
         id: circle.id,
         isExploding: circle.isExploding,
         explosionColor: circle.explosionColor,
+        gapAngle: circle.gapAngle,
+        gapRotation: circle.gapRotation,
       })),
     }));
 

@@ -73,15 +73,16 @@ class PhysicsEngine {
 
           if (!circle.isExploding) {
             const timeInSeconds = this.frameCount / GAME_CONFIG.FPS;
-            const baseRotation = (circleId * 360) / GAME_CONFIG.SPIRAL_DENSITY;
-            const currentRotation =
-              baseRotation +
-              timeInSeconds * GAME_CONFIG.SPIRAL_ROTATION_SPEED * 360;
+            const centerX = GAME_CONFIG.VIDEO_WIDTH / 2;
+            const centerY = GAME_CONFIG.VIDEO_HEIGHT / 2;
+
+            // Utiliser la méthode utilitaire pour la cohérence
+            const { currentRadius, currentRotation } =
+              this.getCircleCurrentParams(circleId, timeInSeconds);
             const effectiveRotation =
               (currentRotation + circle.gapRotation) % 360;
 
-            const centerX = GAME_CONFIG.VIDEO_WIDTH / 2;
-            const centerY = GAME_CONFIG.VIDEO_HEIGHT / 2;
+            // Calculer l'angle de la balle par rapport au centre
             const ballAngle =
               (Math.atan2(
                 ballBody.position.y - centerY,
@@ -89,11 +90,13 @@ class PhysicsEngine {
               ) *
                 180) /
               Math.PI;
-
             const normalizedBallAngle = (ballAngle + 360) % 360;
+
+            // Calculer les limites du gap
             const gapStart = effectiveRotation % 360;
             const gapEnd = (gapStart + circle.gapAngle) % 360;
 
+            // Vérifier si la balle est dans le gap
             const isInGap =
               gapStart <= gapEnd
                 ? normalizedBallAngle >= gapStart &&
@@ -101,33 +104,39 @@ class PhysicsEngine {
                 : normalizedBallAngle >= gapStart ||
                   normalizedBallAngle <= gapEnd;
 
-            if (isInGap) {
+            // Vérifier si la balle est à la bonne distance du centre
+            const ballDistance = Math.sqrt(
+              Math.pow(ballBody.position.x - centerX, 2) +
+                Math.pow(ballBody.position.y - centerY, 2),
+            );
+            const isAtCorrectRadius =
+              Math.abs(ballDistance - currentRadius) < 60; // Tolérance ajustée pour une détection plus précise
+
+            if (isInGap && isAtCorrectRadius) {
+              // La balle passe par le gap - déclencher la collision pour le score
               this.collisionHandlers.onBallCircleCollision(
                 ballBody.label,
                 circleId,
               );
-            } else {
-              // Appliquer une force de rebond plus forte
+            } else if (!isInGap && isAtCorrectRadius) {
+              // La balle touche le ring - rebond fort
               const velocity = ballBody.velocity;
               const speed = Math.sqrt(
                 velocity.x * velocity.x + velocity.y * velocity.y,
               );
-              const radius = Math.sqrt(
-                Math.pow(ballBody.position.x - centerX, 2) +
-                  Math.pow(ballBody.position.y - centerY, 2),
-              );
-              const normalX = (ballBody.position.x - centerX) / radius;
-              const normalY = (ballBody.position.y - centerY) / radius;
+              const normalX = (ballBody.position.x - centerX) / ballDistance;
+              const normalY = (ballBody.position.y - centerY) / ballDistance;
 
+              // Rebond plus fort pour éviter que la balle traverse
               Matter.Body.setVelocity(ballBody, {
-                x: -normalX * speed,
-                y: -normalY * speed,
+                x: -normalX * speed * 1.2,
+                y: -normalY * speed * 1.2,
               });
 
-              // Déplacer légèrement la balle pour éviter qu'elle ne reste coincée
+              // Déplacer plus loin la balle pour éviter qu'elle reste coincée
               Matter.Body.setPosition(ballBody, {
-                x: ballBody.position.x + normalX * 2,
-                y: ballBody.position.y + normalY * 2,
+                x: ballBody.position.x + normalX * 10,
+                y: ballBody.position.y + normalY * 10,
               });
             }
           }
@@ -263,8 +272,8 @@ class PhysicsEngine {
 
     Matter.Engine.update(this.engine, deltaTime);
 
-    // FIX: Supprimer la mise à jour manuelle des segments - géré par SemiCircle.tsx
-    // Les segments restent statiques, la rotation est purement visuelle
+    // Mettre à jour les positions des segments pour synchroniser avec les rings visuels
+    this.updateCircleSegments(frame);
 
     // FIX: Contraintes de vitesse simplifiées et plus stables
     const bodies = [this.state.yesBall, this.state.noBall];
@@ -288,6 +297,67 @@ class PhysicsEngine {
           y: velocity.y * factor,
         });
       }
+    });
+  }
+
+  /**
+   * Calcule les paramètres actuels d'un cercle (rayon, rotation, etc.)
+   */
+  private getCircleCurrentParams(circleId: number, timeInSeconds: number) {
+    const radiusStep =
+      (GAME_CONFIG.MAX_CIRCLE_RADIUS - GAME_CONFIG.MIN_CIRCLE_RADIUS) /
+      (GAME_CONFIG.SPIRAL_DENSITY - 1);
+    const initialRadius =
+      GAME_CONFIG.MIN_CIRCLE_RADIUS + radiusStep * circleId * 1.5;
+    const shrinkSpeed = 10; // Synchronisé avec BallEscape.tsx
+    const interval = 0.5;
+    const appearTime = circleId * interval;
+    const timeSinceAppear = Math.max(0, timeInSeconds - appearTime);
+    const shrink = shrinkSpeed * timeSinceAppear;
+    const currentRadius = Math.max(250, initialRadius - shrink); // Synchronisé avec minShrinkRadius
+
+    const baseRotation = (circleId * 360) / GAME_CONFIG.SPIRAL_DENSITY;
+    const currentRotation =
+      baseRotation + timeInSeconds * GAME_CONFIG.SPIRAL_ROTATION_SPEED * 360;
+
+    return {
+      currentRadius,
+      currentRotation,
+    };
+  }
+
+  /**
+   * Met à jour les positions des segments pour synchroniser avec les rings visuels
+   */
+  private updateCircleSegments(frame: number) {
+    const centerX = GAME_CONFIG.VIDEO_WIDTH / 2;
+    const centerY = GAME_CONFIG.VIDEO_HEIGHT / 2;
+    const timeInSeconds = frame / GAME_CONFIG.FPS;
+
+    this.state.circles.forEach((circle, circleIndex) => {
+      if (circle.isExploding) return;
+
+      const { currentRadius, currentRotation } = this.getCircleCurrentParams(
+        circleIndex,
+        timeInSeconds,
+      );
+
+      // Mettre à jour chaque segment
+      circle.segments.forEach((segment, segmentIndex) => {
+        const segmentCount = 36;
+        const angle = (segmentIndex * 360) / segmentCount;
+        const totalAngle = angle + circle.gapRotation + currentRotation;
+        const radian = (totalAngle * Math.PI) / 180;
+
+        // Nouvelle position basée sur le rayon actuel et la rotation
+        const newX = centerX + currentRadius * Math.cos(radian);
+        const newY = centerY + currentRadius * Math.sin(radian);
+        const newAngle = (totalAngle * Math.PI) / 180;
+
+        // Mettre à jour la position et l'angle du segment
+        Matter.Body.setPosition(segment, { x: newX, y: newY });
+        Matter.Body.setAngle(segment, newAngle);
+      });
     });
   }
 

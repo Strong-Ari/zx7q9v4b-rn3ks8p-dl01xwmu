@@ -19,8 +19,8 @@ export const GAME_CONFIG = {
   // Configuration des cercles - Paramètres optimisés pour une meilleure synchronisation
   MIN_CIRCLE_RADIUS: 250, // Réduit pour plus d'espace central
   MAX_CIRCLE_RADIUS: 800, // Légèrement réduit pour un meilleur équilibre
-  CIRCLE_GAP_MIN_ANGLE: 40, // Réduit pour des ouvertures plus petites (plus difficile)
-  CIRCLE_GAP_MAX_ANGLE: 50, // Réduit pour plus de défi
+  CIRCLE_GAP_MIN_ANGLE: 60, // Augmenté pour des ouvertures plus larges (plus facile)
+  CIRCLE_GAP_MAX_ANGLE: 80, // Augmenté pour plus d'opportunités de cassage
   CIRCLE_SPACING: 35, // Réduit pour plus d'anneaux
   CIRCLE_STROKE_WIDTH: 9, // Réduit pour un look plus élégant
   SPIRAL_ROTATION_SPEED: 0.1, // Vitesse réduite pour une rotation plus lente et fluide
