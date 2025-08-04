@@ -40,8 +40,8 @@ interface SimulationData {
 class BakedPhysicsEngine {
   private engine: Matter.Engine;
   private world: Matter.World;
-  private yesBall: Matter.Body;
-  private noBall: Matter.Body;
+  private yesBall!: Matter.Body; // Utiliser ! pour indiquer qu'elle sera assignée dans le constructeur
+  private noBall!: Matter.Body; // Utiliser ! pour indiquer qu'elle sera assignée dans le constructeur
   private circles: CircleData[] = [];
   private circleSegments: Matter.Body[][] = [];
   private scores = { yes: 0, no: 0 };

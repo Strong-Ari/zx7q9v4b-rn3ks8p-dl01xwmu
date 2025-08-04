@@ -1,14 +1,12 @@
-import React from "react";
-import { interpolate, useCurrentFrame, useVideoConfig } from "remotion";
-import { GAME_CONFIG } from "../constants/game";
+import { useCurrentFrame } from "remotion";
 
 interface SemiCircleProps {
   radius: number;
+  strokeWidth: number;
   gapAngle: number;
-  gapRotation: number;
-  baseRotation: number;
-  isExploding: boolean;
-  explosionColor: string;
+  rotation: number;
+  color: string;
+  isExploding?: boolean;
 }
 
 export const SemiCircle: React.FC<SemiCircleProps> = ({

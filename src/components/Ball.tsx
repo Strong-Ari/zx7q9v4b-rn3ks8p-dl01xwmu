@@ -8,10 +8,10 @@ interface Position {
 }
 
 interface BallProps {
-  type: "yes" | "no";
-  position: Position;
-  velocity: Position;
-  trail: Position[];
+  position: { x: number; y: number };
+  color: string;
+  radius: number;
+  trail: Array<{ x: number; y: number }>;
 }
 
 export const Ball: React.FC<BallProps> = ({

@@ -5,15 +5,15 @@ export const GAME_CONFIG = {
   FPS: 30, // Changé à 30 FPS
   DURATION_IN_SECONDS: 61, // 1 minute et 1 seconde
 
-  // Configuration des balles - Paramètres optimisés
+  // Configuration des balles - Paramètres optimisés pour plus de dynamisme
   BALL_RADIUS: 35,
-  BALL_SPEED: 6, // Augmenté légèrement pour plus de dynamisme
+  BALL_SPEED: 12, // Augmenté significativement pour plus de vitesse
   TRAIL_LENGTH: 15, // Augmenté pour des traînées plus visibles
   BALL_MASS: 1,
-  BALL_FRICTION: 0.995, // Augmenté pour une friction plus réaliste
-  BALL_ELASTICITY: 0.9, // Augmenté pour des rebonds plus énergiques
-  BALL_MIN_SPEED: 2, // Réduit pour permettre des mouvements plus lents
-  BALL_MAX_SPEED: 15, // Augmenté pour plus d'intensité
+  BALL_FRICTION: 0.98, // Réduit pour moins de friction et plus de vitesse
+  BALL_ELASTICITY: 0.95, // Augmenté pour des rebonds plus énergiques
+  BALL_MIN_SPEED: 4, // Augmenté pour maintenir une vitesse minimale plus élevée
+  BALL_MAX_SPEED: 25, // Augmenté pour permettre des vitesses très élevées
   INITIAL_CIRCLE_RADIUS: 120, // Réduit pour plus d'espace de mouvement initial
 
   // Configuration des cercles - Paramètres optimisés pour une meilleure synchronisation
@@ -68,6 +68,30 @@ export const GAME_CONFIG = {
     PADDING: "8px 20px",
     BORDER_RADIUS: "24px",
     TOP_POSITION: "82%",
+  },
+} as const;
+
+// Configuration audio simplifiée
+export const AUDIO_CONFIG = {
+  // Sons de collision par fréquence
+  COLLISION_SOUNDS: {
+    BALL_CIRCLE: {
+      frequency: 523.25, // Do# aigu
+      duration: 0.15,
+      volume: 0.7,
+    },
+    BALL_BALL: {
+      frequency: 329.63, // Mi
+      duration: 0.18,
+      volume: 0.8,
+    },
+  },
+  
+  // Configuration de la musique de fond
+  BACKGROUND_MUSIC: {
+    volume: 0.3,
+    fadeIn: 1.0, // secondes
+    fadeOut: 2.0, // secondes
   },
 } as const;
 

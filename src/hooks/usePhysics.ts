@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useCurrentFrame } from "remotion";
-import PhysicsEngine, { PhysicsState } from "../physics/engine";
+import PhysicsEngine from "../physics/engine";
 import { GAME_CONFIG } from "../constants/game";
 
 interface Position {
@@ -33,7 +33,7 @@ interface GameState {
 }
 
 export const usePhysics = (
-  onCollisionSound: (type: "BALL_CIRCLE" | "BALL_BALL") => void,
+  onCollisionSound: (type: "BALL_CIRCLE" | "BALL_BALL") => Promise<void>,
 ) => {
   const frame = useCurrentFrame();
   const engineRef = useRef<PhysicsEngine | null>(null);
@@ -54,7 +54,7 @@ export const usePhysics = (
 
   // Initialiser le moteur physique
   useEffect(() => {
-    const handleBallCircleCollision = (ballId: string, circleId: number) => {
+    const handleBallCircleCollision = async (ballId: string, circleId: number) => {
       if (!engineRef.current) return;
 
       // Mettre à jour le score et l'état du cercle
@@ -81,12 +81,20 @@ export const usePhysics = (
       // Supprimer les segments du cercle dans le moteur physique
       engineRef.current.removeCircleSegments(circleId);
 
-      // Jouer le son de collision
-      onCollisionSound("BALL_CIRCLE");
+      // Jouer le son de collision de manière asynchrone
+      try {
+        await onCollisionSound("BALL_CIRCLE");
+      } catch (error) {
+        console.warn("Erreur lors de la lecture du son de collision balle-cercle:", error);
+      }
     };
 
-    const handleBallBallCollision = () => {
-      onCollisionSound("BALL_BALL");
+    const handleBallBallCollision = async () => {
+      try {
+        await onCollisionSound("BALL_BALL");
+      } catch (error) {
+        console.warn("Erreur lors de la lecture du son de collision balle-balle:", error);
+      }
     };
 
     engineRef.current = new PhysicsEngine(
