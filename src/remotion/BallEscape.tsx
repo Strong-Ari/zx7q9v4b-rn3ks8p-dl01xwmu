@@ -13,6 +13,7 @@ import { Scoreboard, Timer } from "../components/UI";
 import { TikTokComment } from "./TikTokComment/TikTokComment";
 import { WinnerAnimation } from "../components/WinnerAnimation";
 import { AudioInitOverlay } from "../components/AudioInitOverlay";
+import { AudioSystem, useAudioTriggers } from "../components/AudioSystem";
 import { useMidiPlayer } from "../hooks/useMidiPlayer";
 import { usePhysics } from "../hooks/usePhysics";
 import { useDynamicCircles } from "../hooks/useDynamicCircles";
@@ -23,6 +24,11 @@ export const BallEscape: React.FC = () => {
   const midiPlayer = useMidiPlayer();
   const { playCollisionSound, forceReinitAudio } = midiPlayer;
   const [audioReady, setAudioReady] = useState(false);
+
+  // Nouveau système audio pour le rendu
+  const audioTriggers = useAudioTriggers();
+  const [lastCollisionFrame, setLastCollisionFrame] = useState(-1);
+  const [lastSuccessFrame, setLastSuccessFrame] = useState(-1);
 
   // Gestion de l'initialisation audio
   const handleAudioReady = useCallback(async () => {
@@ -38,8 +44,19 @@ export const BallEscape: React.FC = () => {
   const timeElapsed = frame / fps;
   const timeLeft = Math.max(0, GAME_CONFIG.DURATION_IN_SECONDS - timeElapsed);
 
-  // Utiliser le moteur physique
-  const gameState = usePhysics(playCollisionSound);
+  // Utiliser le moteur physique avec callback pour les SFX
+  const handleCollisionSound = useCallback(() => {
+    // Éviter les déclenchements multiples sur la même frame
+    if (frame !== lastCollisionFrame) {
+      audioTriggers.triggerCollision();
+      setLastCollisionFrame(frame);
+    }
+    
+    // Garder aussi l'ancien système pour le studio
+    playCollisionSound();
+  }, [audioTriggers, frame, lastCollisionFrame, playCollisionSound]);
+
+  const gameState = usePhysics(handleCollisionSound);
 
   // Hook pour gérer les cercles dynamiques (apparition + rétrécissement)
   const dynamicCircles = useDynamicCircles({
@@ -54,11 +71,19 @@ export const BallEscape: React.FC = () => {
     minShrinkRadius: 250, // Rayon minimum ajusté pour un bon équilibre
   });
 
-  // Déterminer le gagnant
+  // Déterminer le gagnant et déclencher le son de succès
   const winner = useMemo(() => {
     if (!gameState.scores || timeLeft > 0) return null;
-    return gameState.scores.yes > gameState.scores.no ? "yes" : "no";
-  }, [gameState.scores, timeLeft]);
+    const winnerResult = gameState.scores.yes > gameState.scores.no ? "yes" : "no";
+    
+    // Déclencher le son de succès une seule fois
+    if (winnerResult && frame !== lastSuccessFrame) {
+      audioTriggers.triggerSuccess();
+      setLastSuccessFrame(frame);
+    }
+    
+    return winnerResult;
+  }, [gameState.scores, timeLeft, audioTriggers, frame, lastSuccessFrame]);
 
   // Utiliser staticFile pour charger l'image dans Remotion Studio
   const commentImagePath = staticFile("tiktok-comment-current.png");
@@ -143,9 +168,19 @@ export const BallEscape: React.FC = () => {
         />
       )}
 
-      {/* Note: L'audio MIDI est géré par Tone.js dans le navigateur
-          et sera audible dans le studio et potentiellement dans le rendu
-          selon les capacités du navigateur */}
+      {/* Système audio pour le rendu Remotion */}
+      <AudioSystem
+        onCollision={audioTriggers.triggers.collision}
+        onBallCollision={audioTriggers.triggers.ballCollision}
+        onGapPass={audioTriggers.triggers.gapPass}
+        onSuccess={audioTriggers.triggers.success}
+        musicVolume={0.6}
+        sfxVolume={0.8}
+        showDebugInfo={false} // Mettre à true pour debug
+      />
+
+      {/* Note: L'audio MIDI est géré par Tone.js dans le navigateur (studio)
+          et par le composant AudioSystem pour le rendu */}
     </AbsoluteFill>
   );
 };

@@ -37,3 +37,8 @@ next-env.d.ts
 out/
 .env
 build
+
+# audio system generated files (optional - you can commit these for faster deploys)
+/public/generated/audio-cache/
+/public/generated/sfx/
+/public/generated/audio-index.json

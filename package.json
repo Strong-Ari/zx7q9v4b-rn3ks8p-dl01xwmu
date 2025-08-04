@@ -20,6 +20,7 @@
     "@tonejs/midi": "^2.0.28",
     "@types/matter-js": "^0.19.8",
     "clsx": "2.1.1",
+    "fluidnode": "^1.0.1",
     "matter-js": "^0.20.0",
     "next": "15.2.4",
     "playwright": "^1.54.1",
@@ -29,6 +30,7 @@
     "soundfont-player": "^0.12.0",
     "tailwind-merge": "3.0.1",
     "tone": "^15.1.22",
+    "wav": "^1.0.2",
     "zod": "3.22.3"
   },
   "devDependencies": {
@@ -57,7 +59,7 @@
     "lint": "next lint",
     "preemotion": "npx tsx scripts/generate-comment-startup.ts",
     "remotion": "npm run preemotion && remotion studio",
-    "prerender": "npx tsx scripts/generate-comment-startup.ts && npx tsx scripts/select-midi-for-render.ts",
+    "prerender": "npx tsx scripts/generate-comment-startup.ts && npx tsx scripts/select-midi-for-render.ts && npx tsx scripts/prepare-audio-for-render.ts",
     "render": "npm run prerender && remotion render",
     "deploy": "node deploy.mjs",
     "test:tiktok": "tsx scripts/test-tiktok-generator.ts",
@@ -72,6 +74,12 @@
     "render:fast": "npm run simulate && remotion render --concurrency=2 --every-nth-frame=2",
     "encode:tiktok": "./scripts/encode-tiktok.sh",
     "test:midi": "npx tsx scripts/test-midi-system.ts",
-    "select:midi": "npx tsx scripts/select-midi-for-render.ts"
+    "select:midi": "npx tsx scripts/select-midi-for-render.ts",
+    "audio:convert": "npx tsx scripts/midi-wav-converter.ts",
+    "audio:sfx": "npx tsx scripts/sfx-generator.ts",
+    "audio:prepare": "npx tsx scripts/prepare-audio-for-render.ts",
+    "audio:clean": "npx tsx scripts/prepare-audio-for-render.ts clean",
+    "audio:stats": "npx tsx scripts/prepare-audio-for-render.ts stats",
+    "audio:test": "npx tsx scripts/test-audio-system.ts"
   }
 }
