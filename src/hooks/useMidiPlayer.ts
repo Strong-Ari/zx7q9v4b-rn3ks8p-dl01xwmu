@@ -18,6 +18,8 @@ interface MidiPlayerState {
   error: string | null;
   collisionFrames: number[];
   playedNotes: Array<{ note: MidiNote; frame: number }>;
+  notesIndex: Map<number, MidiNote[]>; // Cache des notes par frame
+  lastProcessedFrame: number; // Dernier frame traité pour optimiser
 }
 
 export const useMidiPlayer = () => {
@@ -31,6 +33,8 @@ export const useMidiPlayer = () => {
     error: null,
     collisionFrames: [],
     playedNotes: [],
+    notesIndex: new Map(),
+    lastProcessedFrame: -1,
   });
 
   const midiDataRef = useRef<ProcessedMidiData | null>(null);
@@ -251,6 +255,131 @@ export const useMidiPlayer = () => {
   }, []);
 
   /**
+   * Pré-calcule l'index des notes par frame pour optimiser la lecture
+   */
+  const buildNotesIndex = useCallback((midiData: ProcessedMidiData, fps: number): Map<number, MidiNote[]> => {
+    const notesIndex = new Map<number, MidiNote[]>();
+    
+    midiData.notes.forEach(note => {
+      // Calculer les frames où cette note doit être jouée
+      const startFrame = Math.floor(note.time * fps);
+      const endFrame = Math.floor((note.time + note.duration) * fps);
+      
+      for (let frame = startFrame; frame <= endFrame; frame++) {
+        if (!notesIndex.has(frame)) {
+          notesIndex.set(frame, []);
+        }
+        notesIndex.get(frame)!.push(note);
+      }
+    });
+    
+    console.log(`[useMidiPlayer] Index des notes créé: ${notesIndex.size} frames avec notes`);
+    return notesIndex;
+  }, []);
+
+/**
+ * Joue les notes MIDI en suivant le timing de la vidéo (frame-based) - Version optimisée
+ */
+const playMusicAtFrame = useCallback(
+  (currentFrame: number, fps: number): void => {
+    if (!state.isInitialized || !midiDataRef.current) {
+      return;
+    }
+
+    // Éviter les traitements redondants
+    if (currentFrame <= state.lastProcessedFrame) {
+      return;
+    }
+
+    // Si l'index n'est pas encore construit, le créer
+    if (state.notesIndex.size === 0 && midiDataRef.current) {
+      const newIndex = buildNotesIndex(midiDataRef.current, fps);
+      setState(prev => ({
+        ...prev,
+        notesIndex: newIndex,
+        lastProcessedFrame: currentFrame,
+      }));
+      return;
+    }
+
+    // Récupérer les notes à jouer pour ce frame
+    const notesToPlay = state.notesIndex.get(currentFrame);
+    
+    if (notesToPlay && notesToPlay.length > 0) {
+      notesToPlay.forEach(note => {
+        // Vérifier si cette note n'a pas déjà été jouée pour ce frame exact
+        const hasBeenPlayed = state.playedNotes.some(
+          playedNote => 
+            playedNote.note === note && 
+            playedNote.frame === currentFrame
+        );
+
+        if (!hasBeenPlayed) {
+          // Jouer la note
+          remotionAudioPlayer.playNote(note, currentFrame);
+
+          // Log pour le debug (réduit)
+          if (currentFrame % 30 === 0) { // Log seulement toutes les secondes
+            const noteName = midiService.midiToNoteName
+              ? midiService.midiToNoteName(note.pitch)
+              : `MIDI${note.pitch}`;
+            console.log(
+              `[useMidiPlayer] 🎵 Frame ${currentFrame}: ${notesToPlay.length} notes actives`,
+            );
+          }
+        }
+      });
+
+      // Enregistrer les notes jouées (optimisé)
+      setState(prev => ({
+        ...prev,
+        playedNotes: [
+          ...prev.playedNotes,
+          ...notesToPlay.map(note => ({ note, frame: currentFrame }))
+        ],
+        lastProcessedFrame: currentFrame,
+      }));
+    } else {
+      // Mettre à jour le dernier frame traité même s'il n'y a pas de notes
+      setState(prev => ({
+        ...prev,
+        lastProcessedFrame: currentFrame,
+      }));
+    }
+  },
+  [state.isInitialized, state.playedNotes, state.notesIndex, state.lastProcessedFrame, buildNotesIndex],
+);
+
+/**
+ * Démarre la lecture continue de la musique MIDI
+ */
+const startBackgroundMusic = useCallback((): void => {
+  if (!state.isInitialized || !midiDataRef.current) {
+    console.log(
+      "[useMidiPlayer] Impossible de démarrer la musique - système non initialisé",
+    );
+    return;
+  }
+
+  const midiData = midiDataRef.current;
+  console.log(
+    `[useMidiPlayer] 🎵 Démarrage de la musique de fond: ${midiData.fileName}`,
+  );
+  console.log(
+    `[useMidiPlayer] 📊 Fichier MIDI: ${midiData.notes.length} notes, durée: ${midiData.totalDuration.toFixed(2)}s`,
+  );
+
+  // Reset complet pour recommencer proprement
+  setState((prev) => ({
+    ...prev,
+    playedNotes: [],
+    currentNoteIndex: 0,
+    notesIndex: new Map(),
+    lastProcessedFrame: -1,
+  }));
+}, [state.isInitialized]);
+
+  /**
    * Nettoie les ressources au démontage
    */
   useEffect(() => {
@@ -288,6 +417,8 @@ export const useMidiPlayer = () => {
     // Fonctions principales
     playCollisionSound,
     playNextNote,
+    playMusicAtFrame, // Nouvelle fonction pour la lecture frame-based
+    startBackgroundMusic, // Nouvelle fonction pour démarrer la musique
     initMidi,
     forceReinitAudio, // Nouvelle fonction pour forcer la réinitialisation
 

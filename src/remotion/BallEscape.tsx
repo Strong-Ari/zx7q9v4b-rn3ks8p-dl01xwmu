@@ -21,8 +21,9 @@ export const BallEscape: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const midiPlayer = useMidiPlayer();
-  const { playCollisionSound, forceReinitAudio } = midiPlayer;
+  const { playCollisionSound, forceReinitAudio, playMusicAtFrame, startBackgroundMusic } = midiPlayer;
   const [audioReady, setAudioReady] = useState(false);
+  const [backgroundMusicStarted, setBackgroundMusicStarted] = useState(false);
 
   // Gestion de l'initialisation audio
   const handleAudioReady = useCallback(async () => {
@@ -37,6 +38,23 @@ export const BallEscape: React.FC = () => {
   // Calculer le temps écoulé en secondes
   const timeElapsed = frame / fps;
   const timeLeft = Math.max(0, GAME_CONFIG.DURATION_IN_SECONDS - timeElapsed);
+
+  // Démarrage de la musique MIDI de fond
+  useEffect(() => {
+    if (isAudioReady && midiPlayer.isInitialized && !backgroundMusicStarted) {
+      console.log("[BallEscape] 🎵 Démarrage de la musique MIDI de fond...");
+      startBackgroundMusic();
+      setBackgroundMusicStarted(true);
+    }
+  }, [isAudioReady, midiPlayer.isInitialized, backgroundMusicStarted, startBackgroundMusic]);
+
+  // Synchronisation continue de la lecture MIDI avec les frames
+  useEffect(() => {
+    if (backgroundMusicStarted && midiPlayer.isInitialized && frame > 0) {
+      // Jouer la musique MIDI synchronisée avec le timing exact des frames
+      playMusicAtFrame(frame, fps);
+    }
+  }, [frame, backgroundMusicStarted, midiPlayer.isInitialized, playMusicAtFrame, fps]);
 
   // Utiliser le moteur physique
   const gameState = usePhysics(playCollisionSound);
@@ -74,6 +92,26 @@ export const BallEscape: React.FC = () => {
         isVisible={!isAudioReady}
         onAudioReady={handleAudioReady}
       /> */}
+      
+      {/* Affichage des informations MIDI pour debug */}
+      {midiPlayer.currentMidiFile && (
+        <div
+          style={{
+            position: "absolute",
+            top: 10,
+            right: 10,
+            color: "white",
+            fontSize: 12,
+            backgroundColor: "rgba(0,0,0,0.5)",
+            padding: "5px 10px",
+            borderRadius: 5,
+            zIndex: 1000,
+          }}
+        >
+          🎵 {midiPlayer.currentMidiFile}
+        </div>
+      )}
+
       {/* Interface utilisateur */}
       <TikTokComment
         imagePath={commentImagePath}
