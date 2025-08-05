@@ -31,9 +31,9 @@ class PhysicsEngine {
     // FIX: Moteur physique optimisé pour Remotion - équilibre précision/performance
     this.engine = Matter.Engine.create({
       gravity: { x: 0, y: 0.5 },
-      constraintIterations: 8, // FIX: Réduire pour de meilleures performances
-      positionIterations: 10, // FIX: Réduire pour de meilleures performances
-      velocityIterations: 8, // FIX: Réduire pour de meilleures performances
+      constraintIterations: 12, // FIX: Augmenter pour plus de précision
+      positionIterations: 15, // FIX: Augmenter pour plus de précision
+      velocityIterations: 12, // FIX: Augmenter pour plus de précision
       timing: {
         timeScale: 1,
       },
@@ -55,6 +55,18 @@ class PhysicsEngine {
     Matter.Events.on(this.engine, "collisionStart", (event) => {
       event.pairs.forEach((pair) => {
         const { bodyA, bodyB } = pair;
+
+        // Collision entre balles - CORRECTION: Permettre aux balles de se détecter
+        if (
+          (bodyA.label === "yesBall" || bodyA.label === "noBall") &&
+          (bodyB.label === "yesBall" || bodyB.label === "noBall") &&
+          bodyA.label !== bodyB.label
+        ) {
+          this.collisionHandlers.onBallBallCollision();
+          return;
+        }
+
+        // Collision balle-cercle
         const ballBody =
           bodyA.label === "yesBall" || bodyA.label === "noBall"
             ? bodyA
@@ -121,7 +133,7 @@ class PhysicsEngine {
                 Math.pow(ballBody.position.y - centerY, 2),
             );
             const isAtCorrectRadius =
-              Math.abs(ballDistance - currentRadius) < 60; // Tolérance ajustée pour une détection plus précise
+              Math.abs(ballDistance - currentRadius) < 40; // Tolérance encore plus réduite pour une détection plus précise
 
             if (isInGap && isAtCorrectRadius) {
               // La balle passe par le gap - déclencher la collision pour le score
@@ -130,7 +142,7 @@ class PhysicsEngine {
                 circleId,
               );
             } else if (!isInGap && isAtCorrectRadius) {
-              // La balle touche le ring - rebond fort
+              // La balle touche le ring - rebond plus doux pour éviter l'éjection
               const velocity = ballBody.velocity;
               const speed = Math.sqrt(
                 velocity.x * velocity.x + velocity.y * velocity.y,
@@ -138,10 +150,10 @@ class PhysicsEngine {
               const normalX = (ballBody.position.x - centerX) / ballDistance;
               const normalY = (ballBody.position.y - centerY) / ballDistance;
 
-              // Rebond plus fort pour éviter que la balle traverse
+              // Rebond plus fort
               Matter.Body.setVelocity(ballBody, {
-                x: -normalX * speed * 1.2,
-                y: -normalY * speed * 1.2,
+                x: -normalX * speed * 1.5, // Augmenté à 1.5
+                y: -normalY * speed * 1.5,
               });
 
               // Déplacer plus loin la balle pour éviter qu'elle reste coincée
@@ -151,15 +163,6 @@ class PhysicsEngine {
               });
             }
           }
-        }
-
-        // Collision entre balles
-        if (
-          (bodyA.label === "yesBall" || bodyA.label === "noBall") &&
-          (bodyB.label === "yesBall" || bodyB.label === "noBall") &&
-          bodyA.label !== bodyB.label
-        ) {
-          this.collisionHandlers.onBallBallCollision();
         }
       });
     });
@@ -177,16 +180,16 @@ class PhysicsEngine {
       GAME_CONFIG.BALL_RADIUS,
       {
         label: "yesBall",
-        friction: 0.005, // FIX: Réduire friction pour plus de fluidité
-        frictionAir: 0.0005, // FIX: Réduire friction air
-        restitution: 0.85, // FIX: Rebonds plus naturels
+        friction: 0, // Plus aucune friction
+        frictionAir: 0, // Plus aucune friction d'air
+        restitution: 0.95, // Élasticité maximale pour des rebonds très énergiques
         mass: 1,
         density: 0.0005, // FIX: Densité plus faible
-        slop: 0.05, // FIX: Tolérance plus large pour éviter les accrochages
+        slop: 0.02, // FIX: Réduire slop pour des collisions plus précises
         inertia: Infinity,
         collisionFilter: {
-          category: 0x0002,
-          mask: 0x0001,
+          category: 0x0002, // Balle
+          mask: 0x0001 | 0x0002, // Peut collider avec les cercles ET les autres balles
         },
       },
     );
@@ -197,22 +200,22 @@ class PhysicsEngine {
       GAME_CONFIG.BALL_RADIUS,
       {
         label: "noBall",
-        friction: 0.005, // FIX: Réduire friction pour plus de fluidité
-        frictionAir: 0.0005, // FIX: Réduire friction air
-        restitution: 0.85, // FIX: Rebonds plus naturels
+        friction: 0, // Plus aucune friction
+        frictionAir: 0, // Plus aucune friction d'air
+        restitution: 0.95, // Élasticité maximale pour des rebonds très énergiques
         mass: 1,
         density: 0.0005, // FIX: Densité plus faible
-        slop: 0.05, // FIX: Tolérance plus large pour éviter les accrochages
+        slop: 0.02, // FIX: Réduire slop pour des collisions plus précises
         inertia: Infinity,
         collisionFilter: {
-          category: 0x0002,
-          mask: 0x0001,
+          category: 0x0002, // Balle
+          mask: 0x0001 | 0x0002, // Peut collider avec les cercles ET les autres balles
         },
       },
     );
 
-    // Appliquer une vitesse initiale plus naturelle
-    const initialSpeed = GAME_CONFIG.BALL_SPEED * 0.8;
+    // Appliquer une vitesse initiale plus modérée
+    const initialSpeed = GAME_CONFIG.BALL_SPEED * 0.9; // Réduit de 1.2 à 0.9
     Matter.Body.setVelocity(yesBall, {
       x: Math.cos(angle) * initialSpeed,
       y: Math.sin(angle) * initialSpeed,
@@ -286,7 +289,7 @@ class PhysicsEngine {
     // Mettre à jour les positions des segments pour synchroniser avec les rings visuels
     this.updateCircleSegments(frame);
 
-    // FIX: Contraintes de vitesse simplifiées et plus stables
+    // FIX: Contraintes de vitesse améliorées pour maintenir l'énergie
     const bodies = [this.state.yesBall, this.state.noBall];
     bodies.forEach((body) => {
       const velocity = body.velocity;
@@ -294,7 +297,7 @@ class PhysicsEngine {
         velocity.x * velocity.x + velocity.y * velocity.y,
       );
 
-      // Limites de vitesse fixes (pas de progression temporelle)
+      // Maintenir une vitesse minimale pour éviter que les balles ralentissent trop
       if (speed < GAME_CONFIG.BALL_MIN_SPEED && speed > 0) {
         const factor = GAME_CONFIG.BALL_MIN_SPEED / speed;
         Matter.Body.setVelocity(body, {
@@ -308,6 +311,7 @@ class PhysicsEngine {
           y: velocity.y * factor,
         });
       }
+      // (SUPPRIMÉ) Plus de boost automatique pour éviter les pics de vitesse
     });
   }
 
@@ -428,12 +432,13 @@ class PhysicsEngine {
                 fillStyle: GAME_CONFIG.COLORS.CIRCLE_COLOR,
               },
               collisionFilter: {
-                category: 0x0001,
-                mask: 0x0002,
+                category: 0x0001, // Cercle
+                mask: 0x0002, // Peut collider avec les balles
               },
               chamfer: { radius: 2 }, // Arrondir légèrement les bords pour éviter les accrochages
               friction: 0.1,
               restitution: 0.5,
+              slop: 0.01, // Réduire slop pour des collisions plus précises
             },
           );
           segments.push(segment);

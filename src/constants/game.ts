@@ -7,13 +7,13 @@ export const GAME_CONFIG = {
 
   // Configuration des balles - Paramètres optimisés
   BALL_RADIUS: 35,
-  BALL_SPEED: 6, // Augmenté légèrement pour plus de dynamisme
+  BALL_SPEED: 8, // Réduit pour une vitesse plus modérée
   TRAIL_LENGTH: 15, // Augmenté pour des traînées plus visibles
   BALL_MASS: 1,
-  BALL_FRICTION: 0.995, // Augmenté pour une friction plus réaliste
+  BALL_FRICTION: 0.999, // Réduit pour maintenir la vitesse
   BALL_ELASTICITY: 0.9, // Augmenté pour des rebonds plus énergiques
-  BALL_MIN_SPEED: 2, // Réduit pour permettre des mouvements plus lents
-  BALL_MAX_SPEED: 15, // Augmenté pour plus d'intensité
+  BALL_MIN_SPEED: 5, // Augmenté pour éviter que les balles ralentissent trop
+  BALL_MAX_SPEED: 18, // Réduit pour une vitesse plus contrôlée
   INITIAL_CIRCLE_RADIUS: 120, // Réduit pour plus d'espace de mouvement initial
 
   // Configuration des cercles - Paramètres optimisés pour une meilleure synchronisation
