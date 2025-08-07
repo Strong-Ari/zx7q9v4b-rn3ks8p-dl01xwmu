@@ -38,3 +38,7 @@ out/
 .env
 build
 public/songs/Super Mario 64 - Medley (1).wav
+
+# Audio téléchargé depuis Cloudinary (temporaire)
+public/current-audio.wav
+public/current-audio-metadata.json
