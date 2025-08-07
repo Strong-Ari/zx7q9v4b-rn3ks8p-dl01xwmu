@@ -3,6 +3,7 @@ import {
   useCurrentFrame,
   useVideoConfig,
   staticFile,
+  Audio,
 } from "remotion";
 import { GAME_CONFIG } from "../constants/game";
 import { useMemo } from "react";
@@ -46,6 +47,9 @@ export const BallEscapeOptimized: React.FC<BallEscapeOptimizedProps> = ({
 
   // Utiliser staticFile pour charger l'image dans Remotion Studio
   const commentImagePath = staticFile("tiktok-comment-current.png");
+  
+  // Utiliser staticFile pour charger l'audio téléchargé depuis Cloudinary
+  const audioPath = staticFile("current-audio.wav");
 
   return (
     <AbsoluteFill
@@ -107,6 +111,9 @@ export const BallEscapeOptimized: React.FC<BallEscapeOptimizedProps> = ({
           noScore={gameState.scores.no}
         />
       )}
+      
+      {/* Audio de fond depuis Cloudinary */}
+      <Audio src={audioPath} />
     </AbsoluteFill>
   );
 };

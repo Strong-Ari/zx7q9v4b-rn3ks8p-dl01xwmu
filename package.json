@@ -55,9 +55,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "preemotion": "npx tsx scripts/generate-comment-startup.ts",
+    "preemotion": "npx tsx scripts/generate-comment-startup.ts && npx tsx scripts/download-random-audio.ts",
     "remotion": "npm run preemotion && remotion studio",
-    "prerender": "npx tsx scripts/generate-comment-startup.ts && npx tsx scripts/select-midi-for-render.ts",
+    "prerender": "npx tsx scripts/generate-comment-startup.ts && npx tsx scripts/download-random-audio.ts && npx tsx scripts/select-midi-for-render.ts",
     "render": "npm run prerender && remotion render",
     "deploy": "node deploy.mjs",
     "test:tiktok": "tsx scripts/test-tiktok-generator.ts",
@@ -72,6 +72,9 @@
     "render:fast": "npm run simulate && remotion render --concurrency=2 --every-nth-frame=2",
     "encode:tiktok": "./scripts/encode-tiktok.sh",
     "test:midi": "npx tsx scripts/test-midi-system.ts",
-    "select:midi": "npx tsx scripts/select-midi-for-render.ts"
+    "select:midi": "npx tsx scripts/select-midi-for-render.ts",
+    "download:audio": "npx tsx scripts/download-random-audio.ts",
+    "sync:cloudinary": "npx tsx scripts/sync-cloudinary-audios.ts",
+    "test:audio": "npx tsx scripts/test-audio-system.ts"
   }
 }

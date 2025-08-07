@@ -4,6 +4,7 @@ import {
   useVideoConfig,
   staticFile,
   random,
+  Audio,
 } from "remotion";
 import { GAME_CONFIG } from "../constants/game";
 import { useMemo, useEffect, useState, useCallback } from "react";
@@ -62,6 +63,9 @@ export const BallEscape: React.FC = () => {
 
   // Utiliser staticFile pour charger l'image dans Remotion Studio
   const commentImagePath = staticFile("tiktok-comment-current.png");
+  
+  // Utiliser staticFile pour charger l'audio téléchargé depuis Cloudinary
+  const audioPath = staticFile("current-audio.wav");
 
   return (
     <AbsoluteFill
@@ -143,6 +147,9 @@ export const BallEscape: React.FC = () => {
         />
       )}
 
+      {/* Audio de fond depuis Cloudinary */}
+      <Audio src={audioPath} />
+      
       {/* Note: L'audio MIDI est géré par Tone.js dans le navigateur
           et sera audible dans le studio et potentiellement dans le rendu
           selon les capacités du navigateur */}
