@@ -151,13 +151,22 @@ export const useMidiPlayer = () => {
   /**
    * Joue un son pour une collision (ancien système, simple beep)
    */
+  const pentatonicFrequencies = [261.63, 293.66, 329.63, 392.0, 440.0]; // Do, Ré, Mi, Sol, La
+
+  let ballCircleIndex = 0;
+  let ballBallIndex = 0;
+
   const playCollisionSound = useCallback((type: CollisionType): void => {
-    // On joue un beep différent selon le type de collision
     if (type === "BALL_CIRCLE") {
-      // Fréquence différente pour chaque type de balle
-      remotionAudioPlayer.playFrequency(523.25, 0.15, 0.7); // Do# aigu
+      const freq =
+        pentatonicFrequencies[ballCircleIndex % pentatonicFrequencies.length];
+      remotionAudioPlayer.playFrequency(freq, 0.15, 0.7);
+      ballCircleIndex++;
     } else if (type === "BALL_BALL") {
-      remotionAudioPlayer.playFrequency(329.63, 0.18, 0.8); // Mi
+      const freq =
+        pentatonicFrequencies[ballBallIndex % pentatonicFrequencies.length];
+      remotionAudioPlayer.playFrequency(freq, 0.18, 0.8);
+      ballBallIndex++;
     }
   }, []);
 

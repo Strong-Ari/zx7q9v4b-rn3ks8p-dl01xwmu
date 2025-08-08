@@ -57,10 +57,10 @@ export const GAME_CONFIG = {
     TOP_POSITION: "8%",
   },
   SCORE_STYLE: {
-    FONT_SIZE: "38px",
+    FONT_SIZE: "40px",
     PADDING: "8px 20px",
     BORDER_RADIUS: "12px",
-    TOP_POSITION: "22%",
+    TOP_POSITION: "24%",
     SPACING: "20px",
   },
   TIMER_STYLE: {
