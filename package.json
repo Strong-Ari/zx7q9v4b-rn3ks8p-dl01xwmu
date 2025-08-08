@@ -50,28 +50,10 @@
     "typescript": "5.8.2"
   },
   "scripts": {
-    "predev": "npx tsx scripts/generate-comment-startup.ts",
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
     "preemotion": "npx tsx scripts/generate-comment-startup.ts",
-    "remotion": "npm run preemotion && remotion studio",
-    "prerender": "npx tsx scripts/generate-comment-startup.ts && npx tsx scripts/select-midi-for-render.ts",
-    "render": "npm run prerender && remotion render",
-    "deploy": "node deploy.mjs",
-    "test:tiktok": "tsx scripts/test-tiktok-generator.ts",
-    "test:rotation": "npx tsx scripts/test-rotation-timing.ts",
-    "test:physics": "npx tsx scripts/test-physics-performance.ts",
-    "cleanup:debug": "npx tsx scripts/cleanup-debug-logs.ts",
-    "generate:comment": "npx tsx scripts/generate-comment.ts",
-    "generate:startup": "npx tsx scripts/generate-comment-startup.ts",
-    "simulate": "npx tsx scripts/simulate.ts",
-    "test:baked-physics": "npx tsx scripts/test-baked-physics.ts",
-    "render:optimized": "npm run simulate && remotion render --concurrency=2",
-    "render:fast": "npm run simulate && remotion render --concurrency=2 --every-nth-frame=2",
-    "encode:tiktok": "./scripts/encode-tiktok.sh",
-    "test:midi": "npx tsx scripts/test-midi-system.ts",
-    "select:midi": "npx tsx scripts/select-midi-for-render.ts"
+    "preaudio": "npx tsx scripts/download-random-audio.ts",
+    "remotion": "npm run preaudio && npm run preemotion && remotion studio",
+    "prerender": "npm run preaudio && npx tsx scripts/generate-comment-startup.ts",
+    "render": "npm run prerender && remotion render"
   }
 }

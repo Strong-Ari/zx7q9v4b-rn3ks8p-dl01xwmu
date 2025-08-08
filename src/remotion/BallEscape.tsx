@@ -4,6 +4,7 @@ import {
   useVideoConfig,
   staticFile,
   random,
+  Audio,
 } from "remotion";
 import { GAME_CONFIG } from "../constants/game";
 import { useMemo, useState, useCallback } from "react";
@@ -132,6 +133,7 @@ export const BallEscape: React.FC = () => {
         />
       </svg>
 
+      <Audio loop src={staticFile("music.wav")} />
       {/* Note: L'audio MIDI est géré par Tone.js dans le navigateur
           et sera audible dans le studio et potentiellement dans le rendu
           selon les capacités du navigateur */}
