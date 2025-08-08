@@ -10,18 +10,11 @@ const compat = new FlatCompat({
   baseDirectory: __dirname,
 });
 
-const [nextPlugin] = compat.extends("plugin:@next/next/recommended");
-
 const eslintConfig = [
-  ...compat.extends("next/typescript"),
-  nextPlugin,
   {
     ...remotion.flatPlugin,
     rules: {
       ...remotion.flatPlugin.rules,
-      ...Object.entries(nextPlugin.rules).reduce((acc, [key]) => {
-        return { ...acc, [key]: "off" };
-      }, {}),
     },
     files: ["src/remotion/**"],
   },

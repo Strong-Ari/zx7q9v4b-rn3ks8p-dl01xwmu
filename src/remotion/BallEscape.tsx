@@ -6,13 +6,11 @@ import {
   random,
 } from "remotion";
 import { GAME_CONFIG } from "../constants/game";
-import { useMemo, useEffect, useState, useCallback } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { Ball } from "../components/Ball";
 import { SemiCircle } from "../components/SemiCircle";
 import { Scoreboard, Timer } from "../components/UI";
 import { TikTokComment } from "./TikTokComment/TikTokComment";
-import { WinnerAnimation } from "../components/WinnerAnimation";
-import { AudioInitOverlay } from "../components/AudioInitOverlay";
 import { useMidiPlayer } from "../hooks/useMidiPlayer";
 import { usePhysics } from "../hooks/usePhysics";
 import { useDynamicCircles } from "../hooks/useDynamicCircles";
@@ -133,15 +131,6 @@ export const BallEscape: React.FC = () => {
           trail={gameState.noBall.trail}
         />
       </svg>
-
-      {/* Animation du gagnant */}
-      {winner && (
-        <WinnerAnimation
-          winner={winner}
-          yesScore={gameState.scores.yes}
-          noScore={gameState.scores.no}
-        />
-      )}
 
       {/* Note: L'audio MIDI est géré par Tone.js dans le navigateur
           et sera audible dans le studio et potentiellement dans le rendu
