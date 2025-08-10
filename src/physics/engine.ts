@@ -62,6 +62,18 @@ class PhysicsEngine {
           (bodyB.label === "yesBall" || bodyB.label === "noBall") &&
           bodyA.label !== bodyB.label
         ) {
+          // BOOST d'énergie lors de la collision balle/balle
+          const boostFactor = 1.5;
+          [bodyA, bodyB].forEach((ball) => {
+            const v = ball.velocity;
+            Matter.Body.setVelocity(ball, {
+              x: v.x * boostFactor,
+              y: v.y * boostFactor,
+            });
+            console.log(
+              `[PHYSICS] BOOST: ${ball.label} reçoit un boost d'énergie à la frame ${this.frameCount}`,
+            );
+          });
           this.collisionHandlers.onBallBallCollision();
           return;
         }
@@ -136,6 +148,10 @@ class PhysicsEngine {
               Math.abs(ballDistance - currentRadius) < 40; // Tolérance encore plus réduite pour une détection plus précise
 
             if (isInGap && isAtCorrectRadius) {
+              // LOG: Collision balle/cercle détectée
+              console.log(
+                `[PHYSICS] Collision balle/cercle: ${ballBody.label} sur cercle ${circleId} à la frame ${this.frameCount}`,
+              );
               // La balle passe par le gap - déclencher la collision pour le score
               this.collisionHandlers.onBallCircleCollision(
                 ballBody.label,
@@ -181,7 +197,7 @@ class PhysicsEngine {
       {
         label: "yesBall",
         friction: 0, // Plus aucune friction
-        frictionAir: 0, // Plus aucune friction d'air
+        frictionAir: 0.001, // Correction: friction d'air très faible mais non nulle
         restitution: 0.95, // Élasticité maximale pour des rebonds très énergiques
         mass: 1,
         density: 0.0005, // FIX: Densité plus faible
@@ -201,7 +217,7 @@ class PhysicsEngine {
       {
         label: "noBall",
         friction: 0, // Plus aucune friction
-        frictionAir: 0, // Plus aucune friction d'air
+        frictionAir: 0.001, // Correction: friction d'air très faible mais non nulle
         restitution: 0.95, // Élasticité maximale pour des rebonds très énergiques
         mass: 1,
         density: 0.0005, // FIX: Densité plus faible
@@ -215,7 +231,7 @@ class PhysicsEngine {
     );
 
     // Appliquer une vitesse initiale plus modérée
-    const initialSpeed = GAME_CONFIG.BALL_SPEED * 0.9; // Réduit de 1.2 à 0.9
+    const initialSpeed = GAME_CONFIG.BALL_SPEED * 1.05; // Réduit de 1.2 à 0.9
     Matter.Body.setVelocity(yesBall, {
       x: Math.cos(angle) * initialSpeed,
       y: Math.sin(angle) * initialSpeed,
@@ -296,7 +312,10 @@ class PhysicsEngine {
       const speed = Math.sqrt(
         velocity.x * velocity.x + velocity.y * velocity.y,
       );
-
+      // LOG: Afficher la vitesse de chaque balle à chaque frame
+      console.log(
+        `[PHYSICS] Frame ${frame} - ${body.label} speed: ${speed.toFixed(2)}`,
+      );
       // Maintenir une vitesse minimale pour éviter que les balles ralentissent trop
       if (speed < GAME_CONFIG.BALL_MIN_SPEED && speed > 0) {
         const factor = GAME_CONFIG.BALL_MIN_SPEED / speed;
