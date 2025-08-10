@@ -11,8 +11,13 @@
     "@remotion/bundler": "4.0.323",
     "@remotion/cli": "4.0.323",
     "@remotion/tailwind-v4": "4.0.323",
+    "@tonejs/midi": "^2.0.28",
+    "cloudinary": "^1.41.3",
     "matter-js": "^0.20.0",
     "playwright": "^1.54.1",
+    "playwright-extra": "^4.3.6",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "remotion": "4.0.323",
@@ -34,6 +39,7 @@
     "preaudio": "npx tsx scripts/download-random-audio.ts",
     "remotion": "npm run preaudio && npm run preemotion && remotion studio",
     "prerender": "npm run preaudio && npx tsx scripts/generate-comment-startup.ts",
-    "render": "npm run prerender && remotion render"
+    "postrender": "npx tsx scripts/upload-video-cloudinary.ts && npx tsx scripts/video-upload-automation.ts",
+    "render": "npm run prerender && remotion render && npm run postrender"
   }
 }
