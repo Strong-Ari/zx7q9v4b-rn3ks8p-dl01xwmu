@@ -1,45 +1,29 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useCurrentFrame } from "remotion";
-import {
-  midiService,
-  ProcessedMidiData,
-  MidiNote,
-} from "../services/midiService";
 import { remotionAudioPlayer } from "../services/remotionAudioPlayer";
 
 type CollisionType = "BALL_CIRCLE" | "BALL_BALL";
 
-interface MidiPlayerState {
+interface AudioState {
   isInitialized: boolean;
   isLoading: boolean;
-  currentMidiFile: string | null;
-  currentNoteIndex: number;
-  totalNotes: number;
   error: string | null;
-  collisionFrames: number[];
-  playedNotes: Array<{ note: MidiNote; frame: number }>;
 }
 
 export const useMidiPlayer = () => {
   const currentFrame = useCurrentFrame();
-  const [state, setState] = useState<MidiPlayerState>({
+  const [state, setState] = useState<AudioState>({
     isInitialized: false,
     isLoading: false,
-    currentMidiFile: null,
-    currentNoteIndex: 0,
-    totalNotes: 0,
     error: null,
-    collisionFrames: [],
-    playedNotes: [],
   });
 
-  const midiDataRef = useRef<ProcessedMidiData | null>(null);
   const initPromiseRef = useRef<Promise<void> | null>(null);
 
   /**
-   * Initialise le système MIDI
+   * Initialise le système audio pour les collisions
    */
-  const initMidi = useCallback(async (): Promise<void> => {
+  const initAudio = useCallback(async (): Promise<void> => {
     // Éviter les initialisations multiples
     if (initPromiseRef.current) {
       return initPromiseRef.current;
@@ -49,9 +33,11 @@ export const useMidiPlayer = () => {
       setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
       try {
-        console.log("[useMidiPlayer] Initialisation du système MIDI...");
+        console.log(
+          "[useMidiPlayer] Initialisation du système audio pour les collisions...",
+        );
 
-        // 1. Initialiser le lecteur audio Remotion
+        // Initialiser le lecteur audio Remotion
         const audioInitialized = await remotionAudioPlayer.initAudio();
         if (!audioInitialized) {
           console.log(
@@ -59,31 +45,14 @@ export const useMidiPlayer = () => {
           );
         }
 
-        // 2. Sélectionner un fichier MIDI aléatoire
-        const selectedFile = midiService.selectRandomMidiFile();
-        console.log(
-          `[useMidiPlayer] Fichier MIDI sélectionné: ${selectedFile}`,
-        );
-
-        // 3. Charger et parser le fichier MIDI
-        const midiData = await midiService.loadMidiFile(selectedFile);
-        midiDataRef.current = midiData;
-
-        console.log(
-          `[useMidiPlayer] MIDI chargé: ${midiData.notes.length} notes, durée: ${midiData.totalDuration.toFixed(2)}s`,
-        );
-
         setState((prev) => ({
           ...prev,
           isInitialized: true,
           isLoading: false,
-          currentMidiFile: selectedFile,
-          totalNotes: midiData.notes.length,
-          currentNoteIndex: 0,
           error: null,
         }));
 
-        console.log("[useMidiPlayer] Système MIDI initialisé avec succès");
+        console.log("[useMidiPlayer] Système audio initialisé avec succès");
       } catch (error) {
         console.error(
           "[useMidiPlayer] Erreur lors de l'initialisation:",
@@ -101,55 +70,7 @@ export const useMidiPlayer = () => {
   }, []);
 
   /**
-   * Joue la note suivante dans la séquence MIDI
-   */
-  const playNextNote = useCallback((): void => {
-    if (!state.isInitialized || !midiDataRef.current) {
-      console.log("[useMidiPlayer] Système MIDI non initialisé, note ignorée");
-      return;
-    }
-
-    const midiData = midiDataRef.current;
-    const currentIndex = state.currentNoteIndex;
-
-    // Vérifier s'il y a des notes disponibles
-    if (midiData.notes.length === 0) {
-      console.log(
-        "[useMidiPlayer] Aucune note disponible dans le fichier MIDI",
-      );
-      return;
-    }
-
-    // Obtenir la note actuelle (avec bouclage)
-    const noteIndex = currentIndex % midiData.notes.length;
-    const currentNote = midiData.notes[noteIndex];
-
-    // Jouer la note avec le frame actuel pour la synchronisation
-    remotionAudioPlayer.playNote(currentNote, currentFrame);
-
-    // Log pour le debug
-    const noteName = midiService.midiToNoteName
-      ? midiService.midiToNoteName(currentNote.pitch)
-      : `MIDI${currentNote.pitch}`;
-
-    console.log(
-      `[useMidiPlayer] Note ${noteIndex + 1}/${midiData.notes.length} jouée: ${noteName} (vélocité: ${currentNote.velocity.toFixed(2)})`,
-    );
-
-    // Mettre à jour l'index pour la prochaine note et enregistrer la collision
-    setState((prev) => ({
-      ...prev,
-      currentNoteIndex: (currentIndex + 1) % midiData.notes.length,
-      collisionFrames: [...prev.collisionFrames, currentFrame],
-      playedNotes: [
-        ...prev.playedNotes,
-        { note: currentNote, frame: currentFrame },
-      ],
-    }));
-  }, [state.isInitialized, state.currentNoteIndex]);
-
-  /**
-   * Joue un son pour une collision (ancien système, simple beep)
+   * Joue un son pour une collision
    */
   const pentatonicFrequencies = [261.63, 293.66, 329.63, 392.0, 440.0]; // Do, Ré, Mi, Sol, La
 
@@ -169,84 +90,6 @@ export const useMidiPlayer = () => {
       ballBallIndex++;
     }
   }, []);
-
-  /**
-   * Reset la séquence MIDI au début
-   */
-  const resetSequence = useCallback((): void => {
-    setState((prev) => ({
-      ...prev,
-      currentNoteIndex: 0,
-      collisionFrames: [],
-      playedNotes: [],
-    }));
-    console.log("[useMidiPlayer] Séquence MIDI remise à zéro");
-  }, []);
-
-  /**
-   * Change de fichier MIDI
-   */
-  const changeMidiFile = useCallback(
-    async (fileName?: string): Promise<void> => {
-      setState((prev) => ({ ...prev, isLoading: true, error: null }));
-
-      try {
-        const selectedFile = fileName || midiService.selectRandomMidiFile();
-        console.log(
-          `[useMidiPlayer] Changement de fichier MIDI: ${selectedFile}`,
-        );
-
-        const midiData = await midiService.loadMidiFile(selectedFile);
-        midiDataRef.current = midiData;
-
-        setState((prev) => ({
-          ...prev,
-          isLoading: false,
-          currentMidiFile: selectedFile,
-          totalNotes: midiData.notes.length,
-          currentNoteIndex: 0,
-          error: null,
-        }));
-
-        console.log(
-          `[useMidiPlayer] Nouveau fichier MIDI chargé: ${midiData.notes.length} notes`,
-        );
-      } catch (error) {
-        console.error(
-          "[useMidiPlayer] Erreur lors du changement de fichier:",
-          error,
-        );
-        setState((prev) => ({
-          ...prev,
-          isLoading: false,
-          error:
-            error instanceof Error
-              ? error.message
-              : "Erreur lors du changement de fichier",
-        }));
-      }
-    },
-    [],
-  );
-
-  /**
-   * Obtient les informations sur le fichier MIDI actuel
-   */
-  const getMidiInfo = useCallback(() => {
-    if (!midiDataRef.current) return null;
-
-    const midiData = midiDataRef.current;
-    return {
-      fileName: midiData.fileName,
-      totalNotes: midiData.notes.length,
-      totalDuration: midiData.totalDuration,
-      currentNoteIndex: state.currentNoteIndex,
-      progress:
-        state.totalNotes > 0
-          ? (state.currentNoteIndex / state.totalNotes) * 100
-          : 0,
-    };
-  }, [state.currentNoteIndex, state.totalNotes]);
 
   /**
    * Force la réinitialisation audio (utile pour Remotion Studio)
@@ -274,19 +117,19 @@ export const useMidiPlayer = () => {
     if (!state.isInitialized && !state.isLoading && !initPromiseRef.current) {
       // Délai pour s'assurer que Remotion Studio est prêt
       const timer = setTimeout(() => {
-        initMidi();
+        initAudio();
       }, 100);
 
       return () => clearTimeout(timer);
     }
-  }, [state.isInitialized, state.isLoading, initMidi]);
+  }, [state.isInitialized, state.isLoading, initAudio]);
 
   // Initialisation forcée au montage du composant
   useEffect(() => {
     const forceInit = async () => {
       if (!state.isInitialized && !state.isLoading) {
         console.log("[useMidiPlayer] Initialisation forcée au montage...");
-        await initMidi();
+        await initAudio();
       }
     };
 
@@ -294,22 +137,14 @@ export const useMidiPlayer = () => {
   }, []); // Dépendances vides pour ne s'exécuter qu'au montage
 
   return {
-    // Fonctions principales
+    // Fonction principale
     playCollisionSound,
-    playNextNote,
-    initMidi,
-    forceReinitAudio, // Nouvelle fonction pour forcer la réinitialisation
+    forceReinitAudio,
 
-    // Gestion de la séquence
-    resetSequence,
-    changeMidiFile,
-
-    // État et informations
+    // État
     ...state,
-    getMidiInfo,
 
     // Utilitaires
-    availableFiles: midiService.getAvailableFiles(),
     audioStatus: remotionAudioPlayer.getAudioStats(),
   };
 };

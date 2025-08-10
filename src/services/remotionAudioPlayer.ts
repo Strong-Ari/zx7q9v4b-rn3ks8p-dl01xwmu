@@ -1,16 +1,14 @@
-// Audio généré dynamiquement pour Remotion
-import { MidiNote } from "./midiService";
+// Audio généré dynamiquement pour Remotion - Version simplifiée pour les collisions
 import * as Tone from "tone";
 
 /**
- * Lecteur audio pour Remotion qui peut générer de l'audio dans le rendu final
- * Utilise une approche hybride : Tone.js pour le studio, audio files pour le rendu
+ * Lecteur audio pour Remotion spécialisé pour les sons de collision
+ * Utilise Tone.js pour générer des sons de collision en temps réel
  */
 export class RemotionAudioPlayer {
   private synth: Tone.PolySynth | null = null;
   private isInitialized = false;
   private isRemotionEnvironment = false;
-  private audioQueue: Array<{ note: MidiNote; frame: number }> = [];
 
   constructor() {
     this.detectEnvironment();
@@ -75,28 +73,28 @@ export class RemotionAudioPlayer {
         console.log("[RemotionAudioPlayer] Contexte audio Tone.js démarré");
       }
 
-      // Créer un synthétiseur avec un son plus adapté au rendu
+      // Créer un synthétiseur optimisé pour les sons de collision
       this.synth = new Tone.PolySynth(Tone.Synth, {
         oscillator: {
-          type: "sawtooth", // Son plus riche pour le rendu
+          type: "sine", // Son plus pur pour les collisions
         },
         envelope: {
           attack: 0.01,
           decay: 0.1,
-          sustain: 0.5,
-          release: 0.5,
+          sustain: 0.3,
+          release: 0.2,
         },
       }).toDestination();
 
-      // Volume optimisé pour le rendu
-      this.synth.volume.value = -6; // Un peu plus fort pour être audible dans le rendu
+      // Volume optimisé pour les collisions
+      this.synth.volume.value = -8;
 
       this.isInitialized = true;
       console.log("[RemotionAudioPlayer] Système audio initialisé avec succès");
 
       // Test audio pour confirmer que tout fonctionne
       setTimeout(() => {
-        this.playFrequency(440, 0.2, 0.5); // Test avec un La 440Hz plus long et plus fort
+        this.playFrequency(440, 0.1, 0.5); // Test court
       }, 200);
 
       return true;
@@ -107,46 +105,6 @@ export class RemotionAudioPlayer {
       );
       this.isInitialized = false;
       return false;
-    }
-  }
-
-  /**
-   * Joue une note MIDI avec timing Remotion
-   */
-  public playNote(note: MidiNote, currentFrame?: number): void {
-    if (!this.isRemotionEnvironment || !this.isInitialized || !this.synth) {
-      return;
-    }
-
-    try {
-      // Convertir le numéro MIDI en fréquence
-      const frequency = this.midiToFrequency(note.pitch);
-      const noteName = this.midiToNoteName(note.pitch);
-
-      // Jouer la note avec la vélocité et la durée
-      const volume = this.velocityToVolume(note.velocity);
-      const duration = Math.min(note.duration, 1.0); // Limiter pour éviter les chevauchements
-
-      this.synth.triggerAttackRelease(frequency, duration, undefined, volume);
-
-      // Enregistrer dans la queue pour debug
-      if (currentFrame !== undefined) {
-        this.audioQueue.push({ note, frame: currentFrame });
-
-        // Garder seulement les 50 dernières notes pour debug
-        if (this.audioQueue.length > 50) {
-          this.audioQueue.shift();
-        }
-      }
-
-      console.log(
-        `[RemotionAudioPlayer] Note jouée: ${noteName} (${frequency.toFixed(1)}Hz) - Frame: ${currentFrame || "N/A"}`,
-      );
-    } catch (error) {
-      console.error(
-        "[RemotionAudioPlayer] Erreur lors de la lecture de la note:",
-        error,
-      );
     }
   }
 
@@ -175,7 +133,7 @@ export class RemotionAudioPlayer {
       );
 
       console.log(
-        `[RemotionAudioPlayer] Fréquence jouée: ${frequency.toFixed(1)}Hz - Durée: ${safeDuration}s - Volume: ${safeVolume}`,
+        `[RemotionAudioPlayer] Collision son: ${frequency.toFixed(1)}Hz - Durée: ${safeDuration}s - Volume: ${safeVolume}`,
       );
     } catch (error) {
       console.error(
@@ -186,97 +144,12 @@ export class RemotionAudioPlayer {
   }
 
   /**
-   * Génère un fichier audio synthétique pour une note (pour le rendu)
-   */
-  public generateNoteAudio(note: MidiNote, sampleRate = 44100): Float32Array {
-    const frequency = this.midiToFrequency(note.pitch);
-    const duration = Math.min(note.duration, 1.0);
-    const volume = this.velocityToVolume(note.velocity);
-
-    const numSamples = Math.floor(sampleRate * duration);
-    const buffer = new Float32Array(numSamples);
-
-    // Générer une onde en dents de scie avec enveloppe
-    for (let i = 0; i < numSamples; i++) {
-      const t = i / sampleRate;
-      const phase = (t * frequency) % 1;
-
-      // Onde en dents de scie
-      const sample = (2 * phase - 1) * volume;
-
-      // Enveloppe ADSR simplifiée
-      const attackTime = 0.01;
-      const releaseTime = 0.1;
-      let envelope = 1;
-
-      if (t < attackTime) {
-        envelope = t / attackTime;
-      } else if (t > duration - releaseTime) {
-        envelope = (duration - t) / releaseTime;
-      }
-
-      buffer[i] = sample * envelope * 0.3; // Réduire le volume global
-    }
-
-    return buffer;
-  }
-
-  /**
-   * Crée un data URL pour l'audio (utilisable avec Remotion Audio)
-   */
-  public createAudioDataUrl(note: MidiNote): string {
-    const audioBuffer = this.generateNoteAudio(note);
-
-    // Créer un WAV simple
-    const length = audioBuffer.length;
-    const arrayBuffer = new ArrayBuffer(44 + length * 2);
-    const view = new DataView(arrayBuffer);
-
-    // Header WAV
-    const writeString = (offset: number, string: string) => {
-      for (let i = 0; i < string.length; i++) {
-        view.setUint8(offset + i, string.charCodeAt(i));
-      }
-    };
-
-    writeString(0, "RIFF");
-    view.setUint32(4, 36 + length * 2, true);
-    writeString(8, "WAVE");
-    writeString(12, "fmt ");
-    view.setUint32(16, 16, true);
-    view.setUint16(20, 1, true);
-    view.setUint16(22, 1, true);
-    view.setUint32(24, 44100, true);
-    view.setUint32(28, 44100 * 2, true);
-    view.setUint16(32, 2, true);
-    view.setUint16(34, 16, true);
-    writeString(36, "data");
-    view.setUint32(40, length * 2, true);
-
-    // Données audio
-    let offset = 44;
-    for (let i = 0; i < length; i++) {
-      const sample = Math.max(-1, Math.min(1, audioBuffer[i]));
-      view.setInt16(offset, sample * 0x7fff, true);
-      offset += 2;
-    }
-
-    // Convertir en data URL
-    const blob = new Blob([arrayBuffer], { type: "audio/wav" });
-    return URL.createObjectURL(blob);
-  }
-
-  /**
-   * Obtient les statistiques de la queue audio
+   * Obtient les statistiques audio
    */
   public getAudioStats(): {
-    totalNotesPlayed: number;
-    recentNotes: Array<{ note: MidiNote; frame: number }>;
     isActive: boolean;
   } {
     return {
-      totalNotesPlayed: this.audioQueue.length,
-      recentNotes: this.audioQueue.slice(-10),
       isActive: this.isInitialized && this.isRemotionEnvironment,
     };
   }
@@ -296,7 +169,6 @@ export class RemotionAudioPlayer {
       }
 
       this.isInitialized = false;
-      this.audioQueue = [];
       console.log("[RemotionAudioPlayer] Ressources audio nettoyées");
     } catch (error) {
       console.error("[RemotionAudioPlayer] Erreur lors du nettoyage:", error);
@@ -323,43 +195,6 @@ export class RemotionAudioPlayer {
       this.synth = null;
     }
     return this.initAudio();
-  }
-
-  /**
-   * Convertit un numéro MIDI en fréquence Hz
-   */
-  private midiToFrequency(midiNote: number): number {
-    return 440 * Math.pow(2, (midiNote - 69) / 12);
-  }
-
-  /**
-   * Convertit un numéro MIDI en nom de note
-   */
-  private midiToNoteName(midiNote: number): string {
-    const noteNames = [
-      "C",
-      "C#",
-      "D",
-      "D#",
-      "E",
-      "F",
-      "F#",
-      "G",
-      "G#",
-      "A",
-      "A#",
-      "B",
-    ];
-    const octave = Math.floor(midiNote / 12) - 1;
-    const note = noteNames[midiNote % 12];
-    return `${note}${octave}`;
-  }
-
-  /**
-   * Convertit la vélocité MIDI en volume
-   */
-  private velocityToVolume(velocity: number): number {
-    return Math.pow(velocity, 0.5) * 0.7;
   }
 }
 
