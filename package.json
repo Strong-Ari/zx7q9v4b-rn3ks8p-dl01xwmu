@@ -8,6 +8,8 @@
     "url": "https://mohitya.dev"
   },
   "dependencies": {
+    "@react-email/components": "^0.5.0",
+    "@react-email/render": "^1.2.0",
     "@remotion/bundler": "4.0.323",
     "@remotion/cli": "4.0.323",
     "@remotion/tailwind-v4": "4.0.323",
@@ -21,6 +23,7 @@
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "remotion": "4.0.323",
+    "resend": "^6.0.1",
     "tone": "^15.1.22"
   },
   "devDependencies": {
@@ -35,11 +38,13 @@
     "typescript": "5.8.2"
   },
   "scripts": {
-    "preemotion": "npx tsx scripts/generate-comment-startup.ts",
     "preaudio": "npx tsx scripts/download-random-audio.ts",
+    "preemotion": "npx tsx scripts/generate-comment-startup.ts",
+    "render": "remotion render",
+    "upload-video-cloudinary": "npx tsx scripts/upload-video-cloudinary.ts",
+    "video-upload-automation": "npx tsx scripts/video-upload-automation.ts",
+    "postrender": "npm run upload-video-cloudinary && npm run video-upload-automation",
     "remotion": "npm run preaudio && npm run preemotion && remotion studio",
-    "prerender": "npm run preaudio && npx tsx scripts/generate-comment-startup.ts",
-    "postrender": "npx tsx scripts/upload-video-cloudinary.ts && npx tsx scripts/video-upload-automation.ts",
-    "render": "npm run prerender && remotion render && npm run postrender"
+    "send-email": "tsx scripts/send-email.tsx"
   }
 }

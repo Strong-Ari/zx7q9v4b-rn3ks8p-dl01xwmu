@@ -1,0 +1,83 @@
+name: Automatisation TikTok
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  automate:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+      CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
+      CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
+      CLOUDINARY_AUDIO_FOLDER: music
+      METRICOOL_EMAIL: ${{ secrets.METRICOOL_EMAIL }}
+      METRICOOL_PASSWORD: ${{ secrets.METRICOOL_PASSWORD }}
+      TELEGRAM_TO: ${{ secrets.TELEGRAM_TO }}
+      TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      RESEND_TO: ${{ secrets.RESEND_TO }}
+
+    steps:
+      - name: 📦 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Installer Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: 📥 Installer pnpm
+        run: npm install -g pnpm
+
+      - name: 📦 Installer les dépendances
+        run: pnpm install --frozen-lockfile
+
+      - name: 🎵 Pré-audio
+        run: pnpm run preaudio
+
+      - name: 🎭 Pré-émotion
+        run: pnpm run preemotion
+
+      - name: 🎥 Render
+        run: pnpm run render
+
+      - name: ✨ Postrender - upload sur Cloudinary
+        run: pnpm run upload-video-cloudinary
+
+      - name: ✨ Postrender - automation vidéo
+        run: pnpm run video-upload-automation
+
+      - name: 📢 Notifier Telegram (succès ou échec)
+        uses: appleboy/telegram-action@v0.1.1
+        with:
+          to: ${{ secrets.TELEGRAM_TO }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
+          message: |
+            ${{ job.status == 'success' && '✅' || '❌' }} Automatisation TikTok terminée !
+            Statut: ${{ job.status }}
+            Workflow: ${{ github.workflow }}
+            Job: ${{ github.job }}
+            Commit: ${{ github.sha }}
+            Auteur: ${{ github.actor }}
+            Lien: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        env:
+          TELEGRAM_TO: ${{ secrets.TELEGRAM_TO }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+
+      - name: 📧 Envoyer mail stylisé React Email + Tailwind via Resend
+        run: pnpm run send-email
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          RESEND_TO: ${{ secrets.RESEND_TO }}
+          STATUS: ${{ job.status }}
+          STATUS_EMOJI: ${{ job.status == 'success' && '🎉' || '💥' }}
+          GITHUB_WORKFLOW: ${{ github.workflow }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_SERVER_URL: ${{ github.server_url }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
