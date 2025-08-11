@@ -32,6 +32,9 @@ importers:
       matter-js:
         specifier: ^0.20.0
         version: 0.20.0
+      patchright:
+        specifier: ^1.52.5
+        version: 1.52.5
       playwright:
         specifier: ^1.54.1
         version: 1.54.2
@@ -2010,6 +2013,16 @@ packages:
 
   parseley@0.12.1:
     resolution: {integrity: sha512-e6qHKe3a9HWr0oMRVDTRhKce+bRO8VGQR3NyVwcjwrbhMmFCX9KszEV35+rn4AdilFAq9VPxP/Fe1wC9Qjd2lw==}
+
+  patchright-core@1.52.5:
+    resolution: {integrity: sha512-8rnLVEK9jDZWzFPy2hCQrp4xhU7zgE8IqseZyjGkgxf+jpAWTuGNgIAlcsKZMfQrDL8j1mZgRIGNAQT00nk6QA==}
+    engines: {node: '>=18'}
+    hasBin: true
+
+  patchright@1.52.5:
+    resolution: {integrity: sha512-wmRpsF9n02j0S+YDk0U3ouuWipHbUowwxbf/4K4G9ng311vvugoo8WndbU/fCsGtme8gYNfcEGcpfF6/L1NXHg==}
+    engines: {node: '>=18'}
+    hasBin: true
 
   path-exists@4.0.0:
     resolution: {integrity: sha512-ak9Qy5Q7jYb2Wwcey5Fpvg2KoAc/ZIhLSLOSBmRmygPsGwkVVt0fZa0qrtMz+m6tJTAHfZQ8FnmB4MG4LWy7/w==}
@@ -4591,6 +4604,14 @@ snapshots:
     dependencies:
       leac: 0.6.0
       peberminta: 0.9.0
+
+  patchright-core@1.52.5: {}
+
+  patchright@1.52.5:
+    dependencies:
+      patchright-core: 1.52.5
+    optionalDependencies:
+      fsevents: 2.3.2
 
   path-exists@4.0.0: {}
 

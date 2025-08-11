@@ -16,6 +16,7 @@
     "@tonejs/midi": "^2.0.28",
     "cloudinary": "^1.41.3",
     "matter-js": "^0.20.0",
+    "patchright": "^1.52.5",
     "playwright": "^1.54.1",
     "playwright-extra": "^4.3.6",
     "puppeteer-extra": "^3.3.6",
