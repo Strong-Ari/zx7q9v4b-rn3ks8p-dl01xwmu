@@ -32,12 +32,12 @@ export const SemiCircle: React.FC<SemiCircleProps> = ({
     baseRotation + timeInSeconds * GAME_CONFIG.SPIRAL_ROTATION_SPEED * 360;
 
   // Debug: Logs pour diagnostic (à supprimer après test)
-  if (frame % 60 === 0) {
-    // Log toutes les 60 frames pour éviter le spam
-    console.log(
-      `[DIAGNOSTIC] Frame: ${frame}, FPS Config: ${GAME_CONFIG.FPS}, FPS Video: ${fps}, Rotation: ${currentRotation.toFixed(2)}`,
-    );
-  }
+  // if (frame % 60 === 0) {
+  //   // Log toutes les 60 frames pour éviter le spam
+  //   console.log(
+  //     `[DIAGNOSTIC] Frame: ${frame}, FPS Config: ${GAME_CONFIG.FPS}, FPS Video: ${fps}, Rotation: ${currentRotation.toFixed(2)}`,
+  //   );
+  // }
 
   const createArcPath = () => {
     const segments = 36;

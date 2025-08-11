@@ -41,6 +41,7 @@
     "preaudio": "npx tsx scripts/download-random-audio.ts",
     "preemotion": "npx tsx scripts/generate-comment-startup.ts",
     "render": "remotion render BallEscape",
+    "tout-en-un": "npm run preaudio && npm run preemotion && npm run render",
     "upload-video-cloudinary": "npx tsx scripts/upload-video-cloudinary.ts",
     "video-upload-automation": "npx tsx scripts/video-upload-automation.ts",
     "postrender": "npm run upload-video-cloudinary && npm run video-upload-automation",

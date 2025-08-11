@@ -12,10 +12,14 @@ import { webpackOverride } from "./src/remotion/webpack-override.mjs";
 Config.setVideoImageFormat("jpeg"); // JPEG = moins de RAM que PNG
 
 // 2. Qualité vidéo optimisée
-Config.setCrf(18); // Qualité élevée mais encode plus léger que défaut (23)
+Config.setCrf(20); // Qualité visuelle correcte, rendu plus rapide
 
 // 3. Concurrency limitée pour éviter la surcharge CPU/RAM
-Config.setConcurrency(2); // Limiter à 2 threads (adaptable selon la machine)
+if (process.env.GITHUB_ACTIONS) {
+  Config.setConcurrency(4); // 4 threads sur GitHub Actions vu que mon repo est public
+} else {
+  Config.setConcurrency(5); // 5 threads en local (PC)
+}
 
 // 4. Optimisations de rendu
 Config.setChromiumOpenGlRenderer("egl"); // Renderer GPU plus stable

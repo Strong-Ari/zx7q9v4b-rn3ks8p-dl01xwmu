@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { interpolate, useCurrentFrame } from "remotion";
 import { GAME_CONFIG } from "../constants/game";
 
@@ -34,7 +34,8 @@ export const Ball: React.FC<BallProps> = ({
   );
 
   // FIX: Traînée optimisée - réduire le nombre d'éléments pour de meilleures performances
-  const renderTrail = () => {
+  // Mémoïser le rendu de la traînée
+  const renderedTrail = useMemo(() => {
     if (trail.length < 2) return null;
 
     // Limiter le nombre d'éléments de traînée pour les performances
@@ -60,7 +61,7 @@ export const Ball: React.FC<BallProps> = ({
           />
         );
       });
-  };
+  }, [trail, color]);
 
   return (
     <g>
@@ -75,7 +76,7 @@ export const Ball: React.FC<BallProps> = ({
       </defs>
 
       {/* Traînée */}
-      {renderTrail()}
+      {renderedTrail}
 
       {/* Balle principale */}
       <g transform={`translate(${position.x}, ${position.y}) scale(${scale})`}>

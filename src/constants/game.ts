@@ -1,14 +1,14 @@
 export const GAME_CONFIG = {
   // Dimensions de la vidéo
-  VIDEO_WIDTH: 1080,
-  VIDEO_HEIGHT: 1920,
+  VIDEO_WIDTH: 720,
+  VIDEO_HEIGHT: 1280,
   FPS: 30, // Changé à 30 FPS
   DURATION_IN_SECONDS: 61, // 1 minute et 1 seconde
 
   // Configuration des balles - Paramètres optimisés
   BALL_RADIUS: 35,
   BALL_SPEED: 8, // Réduit pour une vitesse plus modérée
-  TRAIL_LENGTH: 15, // Augmenté pour des traînées plus visibles
+  TRAIL_LENGTH: 8, // Augmenté pour des traînées plus visibles
   BALL_MASS: 1,
   BALL_FRICTION: 0.999, // Réduit pour maintenir la vitesse
   BALL_ELASTICITY: 0.9, // Augmenté pour des rebonds plus énergiques
@@ -41,7 +41,6 @@ export const GAME_CONFIG = {
   },
 
   // Interface
-  COMMENT_TEXT: "Does my bro Watch corn pub?",
   TIMER_FORMAT: "Time left: {seconds}",
   SCORE_FORMAT: {
     YES: "Yes : {score}",
@@ -64,9 +63,9 @@ export const GAME_CONFIG = {
     SPACING: "20px",
   },
   TIMER_STYLE: {
-    FONT_SIZE: "58px",
-    PADDING: "8px 20px",
-    BORDER_RADIUS: "24px",
+    FONT_SIZE: "46px",
+    PADDING: "1px 20px",
+    BORDER_RADIUS: "20px",
     TOP_POSITION: "82%",
   },
 } as const;

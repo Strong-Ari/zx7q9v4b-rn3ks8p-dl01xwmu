@@ -7,7 +7,7 @@ import {
   Audio,
 } from "remotion";
 import { GAME_CONFIG } from "../constants/game";
-import { useMemo, useState, useCallback } from "react";
+import { useMemo } from "react";
 import { Ball } from "../components/Ball";
 import { SemiCircle } from "../components/SemiCircle";
 import { Scoreboard, Timer } from "../components/UI";
@@ -20,18 +20,7 @@ export const BallEscape: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const midiPlayer = useMidiPlayer();
-  const { playCollisionSound, forceReinitAudio } = midiPlayer;
-  const [audioReady, setAudioReady] = useState(false);
-
-  // Gestion de l'initialisation audio
-  const handleAudioReady = useCallback(async () => {
-    console.log("[BallEscape] Initialisation audio demandée...");
-    await forceReinitAudio();
-    setAudioReady(true);
-  }, [forceReinitAudio]);
-
-  // Vérifier si l'audio est prêt
-  const isAudioReady = audioReady || midiPlayer.audioStatus.isActive;
+  const { playCollisionSound } = midiPlayer;
 
   // Calculer le temps écoulé en secondes
   const timeElapsed = frame / fps;
@@ -53,11 +42,21 @@ export const BallEscape: React.FC = () => {
     minShrinkRadius: 250, // Rayon minimum ajusté pour un bon équilibre
   });
 
-  // Déterminer le gagnant
-  const winner = useMemo(() => {
-    if (!gameState.scores || timeLeft > 0) return null;
-    return gameState.scores.yes > gameState.scores.no ? "yes" : "no";
-  }, [gameState.scores, timeLeft]);
+  // Mémoïser les gaps et rotations pour chaque cercle dynamique
+  const gapDataById = useMemo(() => {
+    const data: Record<number, { gapAngle: number; gapRotation: number }> = {};
+    for (let i = 0; i < GAME_CONFIG.SPIRAL_DENSITY; i++) {
+      data[i] = {
+        gapAngle:
+          GAME_CONFIG.CIRCLE_GAP_MIN_ANGLE +
+          random(`circle-gap-${i}`) *
+            (GAME_CONFIG.CIRCLE_GAP_MAX_ANGLE -
+              GAME_CONFIG.CIRCLE_GAP_MIN_ANGLE),
+        gapRotation: random(`circle-rotation-${i}`) * 360,
+      };
+    }
+    return data;
+  }, []);
 
   // Utiliser staticFile pour charger l'image dans Remotion Studio
   const commentImagePath = staticFile("tiktok-comment-current.png");
@@ -96,14 +95,9 @@ export const BallEscape: React.FC = () => {
           // Utiliser les mêmes gaps que la physique pour la synchronisation
           const physicsCircle = gameState.circles[circle.id];
           const gapAngle =
-            physicsCircle?.gapAngle ||
-            GAME_CONFIG.CIRCLE_GAP_MIN_ANGLE +
-              random(`circle-gap-${circle.id}`) *
-                (GAME_CONFIG.CIRCLE_GAP_MAX_ANGLE -
-                  GAME_CONFIG.CIRCLE_GAP_MIN_ANGLE);
+            physicsCircle?.gapAngle ?? gapDataById[circle.id]?.gapAngle;
           const gapRotation =
-            physicsCircle?.gapRotation ||
-            random(`circle-rotation-${circle.id}`) * 360;
+            physicsCircle?.gapRotation ?? gapDataById[circle.id]?.gapRotation;
 
           return (
             <SemiCircle

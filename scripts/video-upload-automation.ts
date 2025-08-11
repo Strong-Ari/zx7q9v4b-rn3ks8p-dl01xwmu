@@ -670,7 +670,7 @@ async function run(): Promise<void> {
     // Lancement du navigateur avec Playwright standard
     logWithTimestamp("🌐 Lancement du navigateur...");
     browser = await chromium.launch({
-      headless: false,
+      headless: !!process.env.GITHUB_ACTIONS,
       slowMo: 100, // Ralentissement pour paraître plus humain
       channel: "chrome",
       args: [
