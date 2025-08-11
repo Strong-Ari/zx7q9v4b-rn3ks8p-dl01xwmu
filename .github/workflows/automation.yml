@@ -36,6 +36,10 @@ jobs:
       - name: 📦 Installer les dépendances
         run: pnpm install --frozen-lockfile
 
+      # 🔥 AJOUT CRUCIAL : Installation des navigateurs Playwright
+      - name: 🌐 Installer les navigateurs Playwright
+        run: pnpm exec playwright install --with-deps
+
       - name: 🎵 Pré-audio
         run: pnpm run preaudio
 
@@ -51,7 +55,9 @@ jobs:
       - name: ✨ Postrender - automation vidéo
         run: pnpm run video-upload-automation
 
+      # Notification Telegram - Sera exécutée même en cas d'échec
       - name: 📢 Notifier Telegram (succès ou échec)
+        if: always() # Toujours exécuter même si les étapes précédentes échouent
         uses: appleboy/telegram-action@v0.1.1
         with:
           to: ${{ secrets.TELEGRAM_TO }}
@@ -64,11 +70,10 @@ jobs:
             Commit: ${{ github.sha }}
             Auteur: ${{ github.actor }}
             Lien: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        env:
-          TELEGRAM_TO: ${{ secrets.TELEGRAM_TO }}
-          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
 
+      # Email - Sera exécuté même en cas d'échec
       - name: 📧 Envoyer mail stylisé React Email + Tailwind via Resend
+        if: always() # Toujours exécuter même si les étapes précédentes échouent
         run: pnpm run send-email
         env:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
