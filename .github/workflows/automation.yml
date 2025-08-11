@@ -37,13 +37,21 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       # 🏆 CACHE PLAYWRIGHT - Installation une seule fois !
+      - name: 💾 Restaurer le cookie Playwright
+        uses: actions/cache@v4
+        id: cookie-cache
+        with:
+          path: |
+            cookies.json
+          key: playwright-cookie-${{ runner.os }}
+
       - name: 💾 Cache des navigateurs Playwright
         uses: actions/cache@v4
         id: playwright-cache
         with:
           path: |
             ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          key: playwright-${{ runner.os }}
           restore-keys: |
             playwright-${{ runner.os }}-
 
@@ -96,3 +104,10 @@ jobs:
           GITHUB_SHA: ${{ github.sha }}
           GITHUB_SERVER_URL: ${{ github.server_url }}
           GITHUB_RUN_ID: ${{ github.run_id }}
+
+      - name: 💾 Sauvegarder le cookie Playwright
+        uses: actions/cache@v4
+        with:
+          path: |
+            cookies.json
+          key: playwright-cookie-${{ runner.os }}

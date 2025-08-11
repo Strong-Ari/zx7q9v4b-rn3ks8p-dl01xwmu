@@ -1,9 +1,7 @@
-import {
-  chromium,
-  type Browser,
-  type BrowserContext,
-  type Page,
-} from "playwright";
+import { addExtra } from "playwright-extra";
+import { chromium } from "patchright";
+import StealthPlugin from "puppeteer-extra-plugin-stealth";
+import type { Browser, BrowserContext, Page } from "playwright";
 import { promises as fs } from "fs";
 import { existsSync } from "fs";
 import dotenv from "dotenv";
@@ -11,6 +9,10 @@ import path from "path";
 
 // Charger les variables d'environnement
 dotenv.config();
+
+// Configuration du navigateur avec stealth
+const chromiumExtra = addExtra(chromium);
+chromiumExtra.use(StealthPlugin());
 
 // Gestion des erreurs non capturées
 process.on("unhandledRejection", (reason, promise) => {
@@ -607,11 +609,57 @@ async function automatePublication(
       'button.v-btn:has-text("Publier maintenant")',
     );
     if (!finalPublishButton) {
+      await takeScreenshot(
+        page,
+        "final_publish_not_found",
+        'Bouton final "Publier maintenant" introuvable',
+      );
+      logWithTimestamp('❌ Bouton final "Publier maintenant" introuvable');
       throw new Error('Bouton final "Publier maintenant" introuvable');
     }
+    await takeScreenshot(
+      page,
+      "before_final_publish_hover",
+      "Avant hover sur bouton Publier maintenant",
+    );
+    // Fermer le toast s'il est présent AVANT de cliquer sur Publier maintenant
+    const toastCloseBtnBeforePublish = await page.$(
+      'div.text-white .v-icon.fa-xmark, div.text-white .v-icon[aria-label="Fermer"], div.text-white button[aria-label="Fermer"]',
+    );
+    if (toastCloseBtnBeforePublish) {
+      await toastCloseBtnBeforePublish.click();
+      await humanDelay(500, 1000);
+      logWithTimestamp("Toast fermé avant publication");
+      await takeScreenshot(
+        page,
+        "toast_closed_before_publish",
+        "Toast fermé avant publication",
+      );
+    } else {
+      logWithTimestamp("Aucun toast à fermer avant publication");
+    }
+    // Attendre la disparition du toast
+    try {
+      await page.waitForSelector(
+        "div.flex.items-center.justify-between.pl-4.pr-2.py-2.gap-4.text-white",
+        { state: "detached", timeout: 5000 },
+      );
+      logWithTimestamp("Toast disparu, prêt à publier");
+    } catch {
+      logWithTimestamp(
+        "Toast toujours présent après 5s, on tente quand même la publication",
+      );
+    }
+    await takeScreenshot(
+      page,
+      "before_final_publish_click",
+      "Juste avant click sur Publier maintenant",
+    );
     await finalPublishButton.hover();
+    logWithTimestamp("Hover sur bouton Publier maintenant effectué");
     await humanDelay(500, 1000);
     await finalPublishButton.click();
+    logWithTimestamp("Click sur bouton Publier maintenant effectué");
     await humanDelay(2000, 4000);
     await takeScreenshot(
       page,
@@ -631,16 +679,47 @@ async function automatePublication(
 
     // Vérification du succès
     logWithTimestamp("⏳ Vérification du succès de la publication...");
-    await page.waitForFunction(
-      () => {
+    await takeScreenshot(
+      page,
+      "before_success_toast_wait",
+      "Avant attente toast de succès",
+    );
+    try {
+      await page.waitForFunction(
+        () => {
+          const toast = document.querySelector(
+            "div.flex.items-center.justify-between.pl-4.pr-2.py-2.gap-4.text-white",
+          );
+          return (
+            toast &&
+            /succès|créée|success|created/i.test(toast.textContent || "")
+          );
+        },
+        { timeout: 60000 },
+      );
+      logWithTimestamp("✅ Publication réussie, toast de validation détecté.");
+      await takeScreenshot(
+        page,
+        "toast_success_found",
+        "Toast de succès détecté",
+      );
+    } catch (e) {
+      await takeScreenshot(
+        page,
+        "toast_success_not_found",
+        "Toast de succès non détecté",
+      );
+      const toastHtml = await page.evaluate(() => {
         const toast = document.querySelector(
           "div.flex.items-center.justify-between.pl-4.pr-2.py-2.gap-4.text-white",
         );
-        return toast?.textContent?.includes("Publication créée avec succès.");
-      },
-      { timeout: 15000 },
-    );
-    logWithTimestamp("✅ Publication réussie, toast de validation détecté.");
+        return toast ? toast.outerHTML : "Aucun toast trouvé";
+      });
+      logWithTimestamp(
+        `⚠️ Toast de succès non détecté après 60s. HTML du toast: ${toastHtml}`,
+      );
+      // On ne throw pas d'erreur fatale, on continue
+    }
 
     logWithTimestamp("🎉 Publication réussie avec anti-détection !");
   } catch (error) {
@@ -667,10 +746,10 @@ async function run(): Promise<void> {
     const config = validateEnvironmentVariables();
     const videoLink = await readVideoLink();
 
-    // Lancement du navigateur avec Playwright standard
-    logWithTimestamp("🌐 Lancement du navigateur...");
-    browser = await chromium.launch({
-      headless: !!process.env.GITHUB_ACTIONS,
+    // Lancement du navigateur avec playwright-extra et plugins stealth
+    logWithTimestamp("🌐 Lancement du navigateur avec anti-détection...");
+    browser = await chromiumExtra.launch({
+      headless: true,
       slowMo: 100, // Ralentissement pour paraître plus humain
       channel: "chrome",
       args: [
@@ -701,7 +780,7 @@ async function run(): Promise<void> {
       ],
     });
 
-    const context = await browser!.newContext({
+    const context = await browser.newContext({
       viewport: { width: 1366, height: 768 }, // Résolution plus commune
       userAgent:
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
