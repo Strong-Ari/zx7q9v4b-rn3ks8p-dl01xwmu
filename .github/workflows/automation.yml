@@ -36,6 +36,22 @@ jobs:
       - name: 📦 Installer les dépendances
         run: pnpm install --frozen-lockfile
 
+      - name: Générer LOGIN_HASH
+        id: generate-hash
+        env:
+          METRICOOL_EMAIL: ${{ secrets.METRICOOL_EMAIL }}
+          METRICOOL_PASSWORD: ${{ secrets.METRICOOL_PASSWORD }}
+        run: |
+          node -e "
+            const crypto = require('crypto');
+            const email = process.env.METRICOOL_EMAIL || '';
+            const password = process.env.METRICOOL_PASSWORD || '';
+            const combined = email + ':' + password;
+            const hash = crypto.createHash('sha256').update(combined).digest('hex').slice(0,8);
+            console.log(`LOGIN_HASH=${hash}`);
+            require('fs').appendFileSync(process.env.GITHUB_ENV, `LOGIN_HASH=${hash}\n`);
+          "
+
       # 🏆 CACHE PLAYWRIGHT - Installation une seule fois !
       - name: 💾 Restaurer le cookie Playwright
         uses: actions/cache@v4
@@ -43,7 +59,7 @@ jobs:
         with:
           path: |
             cookies.json
-          key: playwright-cookie-${{ runner.os }}
+          key: playwright-cookie-${{ runner.os }}-${{ env.LOGIN_HASH }}
 
       - name: 💾 Cache des navigateurs Playwright
         uses: actions/cache@v4
@@ -52,8 +68,6 @@ jobs:
           path: |
             ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}
-          restore-keys: |
-            playwright-${{ runner.os }}-
 
       # Installation conditionnelle - seulement si pas en cache
       - name: 🌐 Installer les navigateurs Playwright
@@ -110,4 +124,10 @@ jobs:
         with:
           path: |
             cookies.json
-          key: playwright-cookie-${{ runner.os }}
+          key: playwright-cookie-${{ runner.os }}-${{ env.LOGIN_HASH }}
+
+      - name: 💾 Sauvegarder le cache des navigateurs Playwright
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}

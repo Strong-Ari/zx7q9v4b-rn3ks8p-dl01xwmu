@@ -33,11 +33,12 @@ interface Config {
 const COOKIES_PATH = "cookies.json";
 const VIDEO_LINK_PATH = "cloudinary-link.txt";
 const LOGIN_URL = "https://app.metricool.com/home";
+const PLANNER_URL = "https://app.metricool.com/planner";
 const SCREENSHOTS_DIR = "screenshots";
 
 const descriptions: string[] = [
-  "Follow + comment 👇 Best one’s in my next vid! 🔥 #fyp #viral",
-  "Comment & follow – I’ll feature one next! 🚀💬 #trending",
+  "Follow + comment 👇 Best one's in my next vid! 🔥 #fyp #viral",
+  "Comment & follow – I'll feature one next! 🚀💬 #trending",
   "Follow + comment = maybe YOU next vid! ⭐🔥 #foryou",
   "Drop a comment & follow – I pick one! 😎🔥 #viralvideo",
   "Follow + comment, get in next upload! 💥🎉 #explore",
@@ -45,11 +46,11 @@ const descriptions: string[] = [
   "Comment & follow – I pick a winner! 🤩💬 #trendingnow",
   "Follow + comment = chance to be next! 🚀⭐ #viral",
   "Follow + comment – maybe YOU get picked! ✨🔥 #foryoupage",
-  "Comment & follow – I’ll show one next! 🎉💥 #viralchallenge",
+  "Comment & follow – I'll show one next! 🎉💥 #viralchallenge",
   "Follow + comment – be in next TikTok! 🔥💬 #fyp",
-  "Comment & follow – best one’s in! 📢💥 #trending",
+  "Comment & follow – best one's in! 📢💥 #trending",
   "Follow + comment, see your name next! 🌟💬 #viral",
-  "Follow + comment – I’ll pick the top! 🚀🔥 #foryou",
+  "Follow + comment – I'll pick the top! 🚀🔥 #foryou",
   "Comment & follow – your words next! 💥💬 #viralvideo",
   "Follow + comment = feature next vid! 🌟🔥 #explorepage",
   "Follow + comment – be the lucky one! 🍀💬 #trendingnow",
@@ -143,50 +144,76 @@ async function loadCookies(context: BrowserContext): Promise<boolean> {
   }
 }
 
-// Fonction pour s'assurer d'être sur l'onglet Planification
+// Fonction améliorée pour s'assurer d'être sur l'onglet Planification
 async function ensureOnPlanningTab(page: Page): Promise<void> {
   try {
-    logWithTimestamp("🔍 Vérification de l'onglet Planification...");
+    logWithTimestamp("🔍 Navigation vers l'onglet Planification...");
+
+    // Navigation directe vers la page planner
+    await page.goto(PLANNER_URL, {
+      waitUntil: "domcontentloaded",
+      timeout: 30000,
+    });
+    await humanDelay(3000, 5000);
+
+    // Attendre que la page soit complètement chargée
+    await page.waitForLoadState("networkidle", { timeout: 15000 });
     await humanDelay(2000, 3000);
 
-    // Vérifier si déjà actif
-    const activeTab = await page.$('a.v-btn.v-btn--active[href*="/planner"]');
-    if (activeTab) {
-      logWithTimestamp('✅ Onglet "Planification" déjà actif');
-      return;
-    }
-
-    // Cliquer sur l'onglet planification avec mouvement de souris naturel
-    logWithTimestamp("➡️ Clic sur l'onglet Planification...");
-    const plannerTab = await page.$('a.v-btn[href*="/planner"]');
-    if (plannerTab) {
-      await plannerTab.hover();
-      await humanDelay(300, 800);
-      await plannerTab.click();
-      await humanDelay(2000, 4000);
-    }
-
-    logWithTimestamp('✅ Onglet "Planification" activé');
+    logWithTimestamp("✅ Navigation vers la page Planification réussie");
+    await takeScreenshot(
+      page,
+      "planner_page_loaded",
+      "Page Planification chargée",
+    );
   } catch (error) {
     logWithTimestamp(
-      `❌ Erreur lors de l'activation de l'onglet Planification: ${error}`,
+      `❌ Erreur lors de la navigation vers Planification: ${error}`,
     );
     throw error;
   }
 }
 
-// Fonction pour vérifier si la session est valide
+// Fonction améliorée pour vérifier si la session est valide
 async function isSessionValid(page: Page): Promise<boolean> {
   try {
     logWithTimestamp("🔍 Vérification de la validité de la session...");
     await ensureOnPlanningTab(page);
-    await page.waitForSelector('button:has-text("Créer une publication")', {
-      timeout: 10000,
-    });
-    logWithTimestamp("✅ Session valide détectée");
-    return true;
+
+    // Attendre et vérifier la présence du bouton "Créer une publication"
+    try {
+      await page.waitForSelector('button:has-text("Créer une publication")', {
+        timeout: 15000,
+      });
+      logWithTimestamp("✅ Session valide détectée");
+      return true;
+    } catch {
+      // Essayer avec d'autres sélecteurs possibles
+      const alternativeSelectors = [
+        'button[data-testid="create-publication"]',
+        'button:has-text("Create")',
+        'button:has-text("Créer")',
+        ".create-post-btn",
+        '[data-cy="create-post"]',
+      ];
+
+      for (const selector of alternativeSelectors) {
+        try {
+          await page.waitForSelector(selector, { timeout: 3000 });
+          logWithTimestamp(
+            `✅ Session valide détectée avec sélecteur alternatif: ${selector}`,
+          );
+          return true;
+        } catch {
+          continue;
+        }
+      }
+
+      logWithTimestamp("❌ Session invalide ou expirée - bouton non trouvé");
+      return false;
+    }
   } catch (error) {
-    logWithTimestamp("❌ Session invalide ou expirée");
+    logWithTimestamp(`❌ Erreur lors de la vérification de session: ${error}`);
     return false;
   }
 }
@@ -205,6 +232,10 @@ async function login(
       timeout: 30000,
     });
     await humanDelay(3000, 5000);
+
+    // Attendre que les champs de connexion soient visibles
+    await page.waitForSelector("#j_username", { timeout: 15000 });
+    await page.waitForSelector("#j_password", { timeout: 15000 });
 
     // Saisie email avec simulation humaine
     logWithTimestamp("📝 Saisie de l'email...");
@@ -239,17 +270,18 @@ async function login(
       await loginButton.click();
     }
 
-    // Attendre la navigation
+    // Attendre la redirection après connexion
     try {
-      await page.waitForNavigation({
-        waitUntil: "domcontentloaded",
-        timeout: 30000,
-      });
+      await page.waitForURL("**/planner*", { timeout: 30000 });
+      logWithTimestamp("✅ Redirection vers planner détectée");
     } catch {
-      await humanDelay(5000, 8000); // Fallback avec délai aléatoire
+      // Attendre avec timeout plus long
+      await humanDelay(8000, 12000);
     }
 
     logWithTimestamp("✅ Connexion réussie");
+
+    // S'assurer d'être sur la page de planification
     await ensureOnPlanningTab(page);
   } catch (error) {
     logWithTimestamp(`❌ Erreur lors de la connexion: ${error}`);
@@ -352,6 +384,38 @@ async function typeUrlHumanly(
   await humanDelay(500, 1000);
 }
 
+// Fonction améliorée pour trouver le bouton "Créer une publication"
+async function findCreatePublicationButton(page: Page): Promise<any> {
+  const selectors = [
+    'button:has-text("Créer une publication")',
+    'button:has-text("Create")',
+    'button:has-text("Créer")',
+    'button[data-testid="create-publication"]',
+    ".create-post-btn",
+    '[data-cy="create-post"]',
+    "button:has(.fa-plus)",
+    'button[title*="Créer"]',
+    'button[aria-label*="Créer"]',
+  ];
+
+  for (const selector of selectors) {
+    try {
+      const element = await page.$(selector);
+      if (element) {
+        const isVisible = await element.isVisible();
+        if (isVisible) {
+          logWithTimestamp(`✅ Bouton trouvé avec le sélecteur: ${selector}`);
+          return element;
+        }
+      }
+    } catch (error) {
+      logWithTimestamp(`⚠️ Sélecteur ${selector} non trouvé: ${error}`);
+    }
+  }
+
+  return null;
+}
+
 // Fonction principale d'automatisation avec anti-détection
 async function automatePublication(
   page: Page,
@@ -363,17 +427,42 @@ async function automatePublication(
     );
     await takeScreenshot(page, "start", "Début du processus");
 
-    // Clic sur "Créer une publication"
+    // Attendre que la page soit complètement chargée
+    await page.waitForLoadState("networkidle", { timeout: 15000 });
+    await humanDelay(3000, 5000);
+
+    // Recherche améliorée du bouton "Créer une publication"
     logWithTimestamp('▶️ Recherche du bouton "Créer une publication"...');
-    const createButton = await page.$(
-      'button:has-text("Créer une publication")',
-    );
+    const createButton = await findCreatePublicationButton(page);
+
     if (!createButton) {
-      throw new Error('Bouton "Créer une publication" introuvable');
+      await takeScreenshot(
+        page,
+        "create_button_not_found",
+        "Bouton Créer une publication introuvable",
+      );
+
+      // Essayer de rafraîchir la page
+      logWithTimestamp("🔄 Rafraîchissement de la page...");
+      await page.reload({ waitUntil: "networkidle" });
+      await humanDelay(5000, 8000);
+
+      const createButtonAfterReload = await findCreatePublicationButton(page);
+      if (!createButtonAfterReload) {
+        throw new Error(
+          'Bouton "Créer une publication" introuvable même après rafraîchissement',
+        );
+      }
+
+      await createButtonAfterReload.hover();
+      await humanDelay(300, 800);
+      await createButtonAfterReload.click();
+    } else {
+      await createButton.hover();
+      await humanDelay(300, 800);
+      await createButton.click();
     }
-    await createButton.hover();
-    await humanDelay(300, 800);
-    await createButton.click();
+
     await humanDelay(2000, 4000);
     await takeScreenshot(
       page,
@@ -491,8 +580,8 @@ async function automatePublication(
             hasVideoPreview: !!videoPreview,
             hasErrors: !!errorElem?.textContent?.trim(),
             errorText: errorElem?.textContent || "",
-            urlValue: !!urlInput?.value, // booléen : true si rempli
-            urlValueString: urlInput?.value || "", // pour affichage
+            urlValue: !!urlInput?.value,
+            urlValueString: urlInput?.value || "",
           };
         });
 
@@ -500,7 +589,6 @@ async function automatePublication(
           `🔍 Tentative ${attempts}/${maxAttempts} - acceptButton: ${indicators.acceptButtonEnabled}, videoPreview: ${indicators.hasVideoPreview}, errors: ${indicators.hasErrors}, errorText: "${indicators.errorText}", urlValue: "${indicators.urlValueString}"`,
         );
 
-        // Capture écran à chaque tentative pour tracer visuellement
         await takeScreenshot(
           page,
           `validation_attempt_${attempts}`,
@@ -577,13 +665,6 @@ async function automatePublication(
       "Dropdown publication cliqué",
     );
 
-    // Log du HTML du menu pour debug
-    const menuHtml = await page.$eval(
-      "div.v-list.mc-menu-list-wrap",
-      (el) => el.innerHTML,
-    );
-    console.log("Contenu HTML du menu déroulant :", menuHtml);
-
     // Attendre que l'option "Publier maintenant" soit visible
     await page.waitForSelector('div.v-list-item[data-value="publishNow"]', {
       timeout: 5000,
@@ -617,11 +698,7 @@ async function automatePublication(
       logWithTimestamp('❌ Bouton final "Publier maintenant" introuvable');
       throw new Error('Bouton final "Publier maintenant" introuvable');
     }
-    await takeScreenshot(
-      page,
-      "before_final_publish_hover",
-      "Avant hover sur bouton Publier maintenant",
-    );
+
     // Fermer le toast s'il est présent AVANT de cliquer sur Publier maintenant
     const toastCloseBtnBeforePublish = await page.$(
       'div.text-white .v-icon.fa-xmark, div.text-white .v-icon[aria-label="Fermer"], div.text-white button[aria-label="Fermer"]',
@@ -630,14 +707,8 @@ async function automatePublication(
       await toastCloseBtnBeforePublish.click();
       await humanDelay(500, 1000);
       logWithTimestamp("Toast fermé avant publication");
-      await takeScreenshot(
-        page,
-        "toast_closed_before_publish",
-        "Toast fermé avant publication",
-      );
-    } else {
-      logWithTimestamp("Aucun toast à fermer avant publication");
     }
+
     // Attendre la disparition du toast
     try {
       await page.waitForSelector(
@@ -650,16 +721,10 @@ async function automatePublication(
         "Toast toujours présent après 5s, on tente quand même la publication",
       );
     }
-    await takeScreenshot(
-      page,
-      "before_final_publish_click",
-      "Juste avant click sur Publier maintenant",
-    );
+
     await finalPublishButton.hover();
-    logWithTimestamp("Hover sur bouton Publier maintenant effectué");
     await humanDelay(500, 1000);
     await finalPublishButton.click();
-    logWithTimestamp("Click sur bouton Publier maintenant effectué");
     await humanDelay(2000, 4000);
     await takeScreenshot(
       page,
@@ -667,7 +732,7 @@ async function automatePublication(
       "Bouton Publier maintenant cliqué",
     );
 
-    // Fermer le toast d'erreur s'il est présent (croix à droite)
+    // Fermer le toast d'erreur s'il est présent
     const toastCloseBtn = await page.$(
       'div.text-white .v-icon.fa-xmark, div.text-white .v-icon[aria-label="Fermer"], div.text-white button[aria-label="Fermer"]',
     );
@@ -679,11 +744,6 @@ async function automatePublication(
 
     // Vérification du succès
     logWithTimestamp("⏳ Vérification du succès de la publication...");
-    await takeScreenshot(
-      page,
-      "before_success_toast_wait",
-      "Avant attente toast de succès",
-    );
     try {
       await page.waitForFunction(
         () => {
@@ -735,7 +795,6 @@ async function automatePublication(
   }
 }
 
-// Fonction principale avec playwright-extra
 // Fonction principale avec playwright-extra
 async function run(): Promise<void> {
   let browser: Browser | null = null;
@@ -848,18 +907,26 @@ async function run(): Promise<void> {
     // Chargement des cookies
     const cookiesLoaded = await loadCookies(context);
 
-    // Navigation avec délais naturels
-    logWithTimestamp("🌐 Navigation vers Metricool...");
-    await page.goto(LOGIN_URL, {
-      waitUntil: "domcontentloaded",
-      timeout: 30000,
-    });
-    await humanDelay(3000, 5000);
-
-    // Vérification de la session
+    // Vérification de la session si cookies chargés
     let sessionIsValid = false;
     if (cookiesLoaded) {
-      sessionIsValid = await isSessionValid(page);
+      logWithTimestamp(
+        "🔍 Vérification de la session avec les cookies existants...",
+      );
+      try {
+        // Navigation vers la page de planification
+        await page.goto(PLANNER_URL, {
+          waitUntil: "domcontentloaded",
+          timeout: 30000,
+        });
+        await humanDelay(5000, 8000);
+        sessionIsValid = await isSessionValid(page);
+      } catch (error) {
+        logWithTimestamp(
+          `⚠️ Erreur lors de la vérification de session: ${error}`,
+        );
+        sessionIsValid = false;
+      }
     }
 
     // Connexion si nécessaire
@@ -869,6 +936,8 @@ async function run(): Promise<void> {
       await saveCookies(context);
     } else {
       logWithTimestamp("✅ Session existante utilisée");
+      // S'assurer d'être sur la bonne page
+      await ensureOnPlanningTab(page);
     }
 
     // Automatisation avec anti-détection
@@ -886,8 +955,6 @@ async function run(): Promise<void> {
     }
   }
 }
-
-// Suppression de la fonction waitForUrlValidation (autour de la ligne 651)
 
 // Point d'entrée
 async function main() {
