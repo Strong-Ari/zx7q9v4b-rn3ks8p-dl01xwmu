@@ -936,8 +936,7 @@ async function run(): Promise<void> {
       await saveCookies(context);
     } else {
       logWithTimestamp("✅ Session existante utilisée");
-      // S'assurer d'être sur la bonne page
-      await ensureOnPlanningTab(page);
+      // Pas besoin de re-naviguer, isSessionValid() l'a déjà fait
     }
 
     // Automatisation avec anti-détection
