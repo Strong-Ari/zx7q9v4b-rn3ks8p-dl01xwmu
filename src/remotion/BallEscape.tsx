@@ -7,7 +7,7 @@ import {
   Audio,
 } from "remotion";
 import { GAME_CONFIG } from "../constants/game";
-import { useMemo } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { Ball } from "../components/Ball";
 import { SemiCircle } from "../components/SemiCircle";
 import { Scoreboard, Timer } from "../components/UI";
@@ -21,6 +21,42 @@ export const BallEscape: React.FC = () => {
   const { fps } = useVideoConfig();
   const midiPlayer = useMidiPlayer();
   const { playCollisionSound } = midiPlayer;
+
+  // Ajout pour choisir dynamiquement le fichier audio
+  const [audioFile, setAudioFile] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Vérifie la présence de music.mp3 puis music.wav
+    fetch(staticFile("music.mp3"), { method: "HEAD" })
+      .then((res) => {
+        if (res.ok) {
+          setAudioFile("music.mp3");
+        } else {
+          // Si pas de mp3, on teste wav
+          fetch(staticFile("music.wav"), { method: "HEAD" })
+            .then((res2) => {
+              if (res2.ok) {
+                setAudioFile("music.wav");
+              } else {
+                setAudioFile(null);
+              }
+            })
+            .catch(() => setAudioFile(null));
+        }
+      })
+      .catch(() => {
+        // Si erreur sur mp3, on teste wav
+        fetch(staticFile("music.wav"), { method: "HEAD" })
+          .then((res2) => {
+            if (res2.ok) {
+              setAudioFile("music.wav");
+            } else {
+              setAudioFile(null);
+            }
+          })
+          .catch(() => setAudioFile(null));
+      });
+  }, []);
 
   // Calculer le temps écoulé en secondes
   const timeElapsed = frame / fps;
@@ -127,7 +163,8 @@ export const BallEscape: React.FC = () => {
         />
       </svg>
 
-      <Audio loop src={staticFile("music.wav")} />
+      {/* Audio dynamique : priorité au mp3 si dispo, sinon wav */}
+      {audioFile && <Audio loop src={staticFile(audioFile)} />}
       {/* Note: L'audio MIDI est géré par Tone.js dans le navigateur
           et sera audible dans le studio et potentiellement dans le rendu
           selon les capacités du navigateur */}
