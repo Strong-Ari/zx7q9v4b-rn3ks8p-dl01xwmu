@@ -8,11 +8,11 @@ import { webpackOverride } from "./src/remotion/webpack-override.mjs";
 
 // ✅ OPTIMISATIONS EXPORT REMOTION ✅
 
-// 1. Format d'image optimisé pour l'export
-Config.setVideoImageFormat("jpeg"); // JPEG = moins de RAM que PNG
+// 1. Format d'image optimisé pour l'export - UNIFIÉ pour consistance
+Config.setVideoImageFormat("jpeg");
 
 // 2. Qualité vidéo optimisée
-Config.setCrf(20); // Qualité visuelle correcte, rendu plus rapide
+Config.setCrf(23); // Qualité plus élevée pour compenser les différences d'environnement
 
 // 3. Concurrency limitée pour éviter la surcharge CPU/RAM
 if (process.env.GITHUB_ACTIONS) {
@@ -21,9 +21,20 @@ if (process.env.GITHUB_ACTIONS) {
   Config.setConcurrency(5); // 5 threads en local (PC)
 }
 
-// 4. Optimisations de rendu
-Config.setChromiumOpenGlRenderer("egl"); // Renderer GPU plus stable
-Config.setChromiumHeadlessMode(true); // Mode headless pour les performances
+// 4. Optimisations de rendu - Configuration unifiée pour consistance
+if (process.env.GITHUB_ACTIONS) {
+  // Configuration spécifique Ubuntu pour éviter les différences de rendu
+  Config.setChromiumOpenGlRenderer("swiftshader"); // Software renderer plus consistant
+  Config.setChromiumHeadlessMode(true);
+
+  // Flags Chromium pour consistance Ubuntu (passés via CLI)
+  Config.setChromiumUserAgent(
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36",
+  );
+} else {
+  Config.setChromiumOpenGlRenderer("egl"); // Renderer GPU plus stable en local
+  Config.setChromiumHeadlessMode(true);
+}
 
 // 5. Configuration mémoire
 Config.setChromiumDisableWebSecurity(false); // Sécurité activée
@@ -35,8 +46,10 @@ Config.setPublicDir("public");
 // 7. Configuration Webpack
 Config.overrideWebpackConfig(webpackOverride);
 
-// 8. Preview settings (plus léger pour le développement)
+// 8. Configuration des polices pour consistance cross-platform
+Config.setChromiumIgnoreCertificateErrors(false);
+
+// 9. Preview settings (plus léger pour le développement)
 if (process.env.NODE_ENV !== "production") {
-  Config.setVideoImageFormat("png"); // PNG pour preview (meilleure qualité debug)
   Config.setConcurrency(1); // 1 thread en dev pour debug plus facile
 }

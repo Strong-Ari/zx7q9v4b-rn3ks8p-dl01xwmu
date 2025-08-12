@@ -98,6 +98,7 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({
 
   return (
     <div
+      className="remotion-ui-element"
       style={{
         position: "absolute",
         top: GAME_CONFIG.SCORE_STYLE.TOP_POSITION,
@@ -107,6 +108,8 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({
         gap: GAME_CONFIG.SCORE_STYLE.SPACING,
         opacity,
         zIndex: 10,
+        alignItems: "center", // Alignement vertical
+        justifyContent: "center", // Alignement horizontal
       }}
     >
       {/* Score Yes */}
@@ -117,8 +120,16 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({
           borderRadius: GAME_CONFIG.SCORE_STYLE.BORDER_RADIUS,
           color: GAME_CONFIG.COLORS.TEXT_PRIMARY,
           fontSize: GAME_CONFIG.SCORE_STYLE.FONT_SIZE,
-          fontFamily: GAME_CONFIG.UI_FONT,
-          fontWeight: "bold",
+          fontFamily: "Inter, system-ui, -apple-system, sans-serif", // Police fixe
+          fontWeight: GAME_CONFIG.SCORE_STYLE.FONT_WEIGHT, // Plus gras
+          minWidth: GAME_CONFIG.SCORE_STYLE.MIN_WIDTH,
+          textAlign: GAME_CONFIG.SCORE_STYLE.TEXT_ALIGN,
+          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.85)", // Ombre pour consistance
+          border: "1px solid rgba(0, 0, 0, 0.1)", // Bordure subtile
+          display: "flex",
+          alignItems: "center", // Centre verticalement le texte
+          justifyContent: "center", // Centre horizontalement le texte
+          minHeight: "60px", // Hauteur minimale pour un bon centrage
         }}
       >
         {GAME_CONFIG.SCORE_FORMAT.YES.replace("{score}", yesScore.toString())}
@@ -132,8 +143,16 @@ export const Scoreboard: React.FC<ScoreboardProps> = ({
           borderRadius: GAME_CONFIG.SCORE_STYLE.BORDER_RADIUS,
           color: GAME_CONFIG.COLORS.TEXT_PRIMARY,
           fontSize: GAME_CONFIG.SCORE_STYLE.FONT_SIZE,
-          fontFamily: GAME_CONFIG.UI_FONT,
-          fontWeight: "bold",
+          fontFamily: "Inter, system-ui, -apple-system, sans-serif", // Police fixe
+          fontWeight: GAME_CONFIG.SCORE_STYLE.FONT_WEIGHT, // Plus gras
+          minWidth: GAME_CONFIG.SCORE_STYLE.MIN_WIDTH,
+          textAlign: GAME_CONFIG.SCORE_STYLE.TEXT_ALIGN,
+          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.85)", // Ombre pour consistance
+          border: "1px solid rgba(0, 0, 0, 0.1)", // Bordure subtile
+          display: "flex",
+          alignItems: "center", // Centre verticalement le texte
+          justifyContent: "center", // Centre horizontalement le texte
+          minHeight: "60px", // Hauteur minimale pour un bon centrage
         }}
       >
         {GAME_CONFIG.SCORE_FORMAT.NO.replace("{score}", noScore.toString())}
@@ -160,21 +179,32 @@ export const Timer: React.FC<TimerProps> = ({ timeLeft }) => {
 
   return (
     <div
+      className="remotion-ui-element"
       style={{
         position: "absolute",
-        top: GAME_CONFIG.TIMER_STYLE.TOP_POSITION,
+        top: GAME_CONFIG.TIMER_STYLE.TOP_POSITION, // Retour en haut comme demandé
         left: "50%",
         transform: "translateX(-50%)",
-        background: "#ffffff",
+        background: "rgba(255, 255, 255, 0.87)", // Background semi-transparent
         padding: GAME_CONFIG.TIMER_STYLE.PADDING,
         borderRadius: GAME_CONFIG.TIMER_STYLE.BORDER_RADIUS,
         color: "#000000",
         fontSize: GAME_CONFIG.TIMER_STYLE.FONT_SIZE,
-        fontFamily: GAME_CONFIG.UI_FONT,
+        fontFamily: "Inter, system-ui, -apple-system, sans-serif", // Police fixe
         opacity,
-        backdropFilter: "blur(80px)",
-        fontWeight: "700",
+        fontWeight: GAME_CONFIG.TIMER_STYLE.FONT_WEIGHT, // Plus gras
         zIndex: 10,
+        width: GAME_CONFIG.TIMER_STYLE.WIDTH,
+        textAlign: GAME_CONFIG.TIMER_STYLE.TEXT_ALIGN,
+        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.85)", // Ombre pour consistance
+        border: "1px solid rgba(0, 0, 0, 0.1)", // Bordure subtile
+        display: "flex",
+        alignItems: "center", // Centre verticalement le texte
+        justifyContent: "center", // Centre horizontalement le texte
+        minHeight: "65px", // Hauteur minimale pour un bon centrage
+        whiteSpace: "nowrap", // Force le texte sur une seule ligne
+        overflow: "hidden", // Cache le débordement si nécessaire
+        lineHeight: "1", // Hauteur de ligne fixe pour éviter les problèmes
       }}
     >
       {GAME_CONFIG.TIMER_FORMAT.replace(

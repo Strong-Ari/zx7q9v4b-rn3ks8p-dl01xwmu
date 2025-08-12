@@ -56,17 +56,23 @@ export const GAME_CONFIG = {
     TOP_POSITION: "8%",
   },
   SCORE_STYLE: {
-    FONT_SIZE: "40px",
-    PADDING: "8px 20px",
-    BORDER_RADIUS: "12px",
-    TOP_POSITION: "24%",
-    SPACING: "20px",
+    FONT_SIZE: "36px", // Plus gros
+    PADDING: "6px 8px", // Plus de padding
+    BORDER_RADIUS: "17px",
+    TOP_POSITION: "25%", // Position fixe
+    SPACING: "16px", // Espacement fixe
+    MIN_WIDTH: "140px", // Plus large
+    TEXT_ALIGN: "center" as const,
+    FONT_WEIGHT: "800", // Plus gras
   },
   TIMER_STYLE: {
-    FONT_SIZE: "46px",
-    PADDING: "1px 20px",
-    BORDER_RADIUS: "20px",
-    TOP_POSITION: "82%",
+    FONT_SIZE: "42px", // Plus gros
+    PADDING: "1px 2px", // Plus de padding
+    BORDER_RADIUS: "21px",
+    TOP_POSITION: "82%", // Position fixe absolue
+    WIDTH: "300px", // Plus large pour éviter le retour à la ligne
+    TEXT_ALIGN: "center" as const,
+    FONT_WEIGHT: "999", // Plus gras
   },
 } as const;
 

@@ -205,7 +205,7 @@ class PhysicsEngine {
         inertia: Infinity,
         collisionFilter: {
           category: 0x0002, // Balle
-          mask: 0x0001 | 0x0002, // Peut collider avec les cercles ET les autres balles
+          mask: 0x0001 | 0x0002 | 0x0004, // Peut collider avec les cercles, autres balles ET murs
         },
       },
     );
@@ -225,7 +225,7 @@ class PhysicsEngine {
         inertia: Infinity,
         collisionFilter: {
           category: 0x0002, // Balle
-          mask: 0x0001 | 0x0002, // Peut collider avec les cercles ET les autres balles
+          mask: 0x0001 | 0x0002 | 0x0004, // Peut collider avec les cercles, autres balles ET murs
         },
       },
     );
@@ -242,40 +242,76 @@ class PhysicsEngine {
       y: -Math.sin(angle) * initialSpeed,
     });
 
-    // Créer les murs invisibles pour contenir les balles
-    const wallThickness = 50;
+    // FIX: Créer des murs plus épais et mieux positionnés pour contenir les balles
+    const wallThickness = 100; // Plus épais pour éviter les fuites
     const walls = [
-      // Sol
+      // Sol - plus haut pour éviter que les balles sortent
       Matter.Bodies.rectangle(
         GAME_CONFIG.VIDEO_WIDTH / 2,
-        GAME_CONFIG.VIDEO_HEIGHT + wallThickness / 2,
-        GAME_CONFIG.VIDEO_WIDTH,
+        GAME_CONFIG.VIDEO_HEIGHT - wallThickness / 2,
+        GAME_CONFIG.VIDEO_WIDTH + wallThickness * 2,
         wallThickness,
-        { isStatic: true, friction: 0.1, restitution: 0.8 },
+        {
+          isStatic: true,
+          friction: 0.1,
+          restitution: 0.9,
+          label: "wall_bottom",
+          collisionFilter: {
+            category: 0x0004, // Mur
+            mask: 0x0002, // Peut collider avec les balles
+          },
+        },
       ),
-      // Plafond
+      // Plafond - plus bas pour éviter que les balles sortent
       Matter.Bodies.rectangle(
         GAME_CONFIG.VIDEO_WIDTH / 2,
-        -wallThickness / 2,
-        GAME_CONFIG.VIDEO_WIDTH,
+        wallThickness / 2,
+        GAME_CONFIG.VIDEO_WIDTH + wallThickness * 2,
         wallThickness,
-        { isStatic: true, friction: 0.1, restitution: 0.8 },
+        {
+          isStatic: true,
+          friction: 0.1,
+          restitution: 0.9,
+          label: "wall_top",
+          collisionFilter: {
+            category: 0x0004, // Mur
+            mask: 0x0002, // Peut collider avec les balles
+          },
+        },
       ),
-      // Mur gauche
+      // Mur gauche - plus à droite pour éviter que les balles sortent
       Matter.Bodies.rectangle(
-        -wallThickness / 2,
+        wallThickness / 2,
         GAME_CONFIG.VIDEO_HEIGHT / 2,
         wallThickness,
-        GAME_CONFIG.VIDEO_HEIGHT,
-        { isStatic: true, friction: 0.1, restitution: 0.8 },
+        GAME_CONFIG.VIDEO_HEIGHT + wallThickness * 2,
+        {
+          isStatic: true,
+          friction: 0.1,
+          restitution: 0.9,
+          label: "wall_left",
+          collisionFilter: {
+            category: 0x0004, // Mur
+            mask: 0x0002, // Peut collider avec les balles
+          },
+        },
       ),
-      // Mur droit
+      // Mur droit - plus à gauche pour éviter que les balles sortent
       Matter.Bodies.rectangle(
-        GAME_CONFIG.VIDEO_WIDTH + wallThickness / 2,
+        GAME_CONFIG.VIDEO_WIDTH - wallThickness / 2,
         GAME_CONFIG.VIDEO_HEIGHT / 2,
         wallThickness,
-        GAME_CONFIG.VIDEO_HEIGHT,
-        { isStatic: true, friction: 0.1, restitution: 0.8 },
+        GAME_CONFIG.VIDEO_HEIGHT + wallThickness * 2,
+        {
+          isStatic: true,
+          friction: 0.1,
+          restitution: 0.9,
+          label: "wall_right",
+          collisionFilter: {
+            category: 0x0004, // Mur
+            mask: 0x0002, // Peut collider avec les balles
+          },
+        },
       ),
     ];
 
@@ -305,17 +341,53 @@ class PhysicsEngine {
     // Mettre à jour les positions des segments pour synchroniser avec les rings visuels
     this.updateCircleSegments(frame);
 
-    // FIX: Contraintes de vitesse améliorées pour maintenir l'énergie
+    // FIX: Contraintes de vitesse et position améliorées
     const bodies = [this.state.yesBall, this.state.noBall];
     bodies.forEach((body) => {
       const velocity = body.velocity;
       const speed = Math.sqrt(
         velocity.x * velocity.x + velocity.y * velocity.y,
       );
-      // LOG: Afficher la vitesse de chaque balle à chaque frame
-      console.log(
-        `[PHYSICS] Frame ${frame} - ${body.label} speed: ${speed.toFixed(2)}`,
-      );
+
+      // FIX: Vérification stricte des limites de l'écran
+      const margin = GAME_CONFIG.BALL_RADIUS + 10; // Marge de sécurité
+      let needsRepositioning = false;
+      let newX = body.position.x;
+      let newY = body.position.y;
+      let newVelX = velocity.x;
+      let newVelY = velocity.y;
+
+      // Vérifier les limites horizontales
+      if (body.position.x < margin) {
+        newX = margin;
+        newVelX = Math.abs(velocity.x); // Inverser vers la droite
+        needsRepositioning = true;
+      } else if (body.position.x > GAME_CONFIG.VIDEO_WIDTH - margin) {
+        newX = GAME_CONFIG.VIDEO_WIDTH - margin;
+        newVelX = -Math.abs(velocity.x); // Inverser vers la gauche
+        needsRepositioning = true;
+      }
+
+      // Vérifier les limites verticales
+      if (body.position.y < margin) {
+        newY = margin;
+        newVelY = Math.abs(velocity.y); // Inverser vers le bas
+        needsRepositioning = true;
+      } else if (body.position.y > GAME_CONFIG.VIDEO_HEIGHT - margin) {
+        newY = GAME_CONFIG.VIDEO_HEIGHT - margin;
+        newVelY = -Math.abs(velocity.y); // Inverser vers le haut
+        needsRepositioning = true;
+      }
+
+      // Repositionner si nécessaire
+      if (needsRepositioning) {
+        Matter.Body.setPosition(body, { x: newX, y: newY });
+        Matter.Body.setVelocity(body, { x: newVelX, y: newVelY });
+        console.log(
+          `[PHYSICS] REPOSITIONING: ${body.label} was out of bounds at frame ${frame}`,
+        );
+      }
+
       // Maintenir une vitesse minimale pour éviter que les balles ralentissent trop
       if (speed < GAME_CONFIG.BALL_MIN_SPEED && speed > 0) {
         const factor = GAME_CONFIG.BALL_MIN_SPEED / speed;
@@ -330,7 +402,6 @@ class PhysicsEngine {
           y: velocity.y * factor,
         });
       }
-      // (SUPPRIMÉ) Plus de boost automatique pour éviter les pics de vitesse
     });
   }
 

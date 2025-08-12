@@ -74,6 +74,9 @@ jobs:
 
       - name: 🎥 Render
         run: pnpm run render
+        env:
+          # Flags pour consistance de rendu Ubuntu
+          CHROMIUM_FLAGS: "--no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage --disable-gpu --force-device-scale-factor=1 --font-render-hinting=none --disable-font-subpixel-positioning"
 
       - name: ✨ Postrender - upload sur Cloudinary
         run: pnpm run upload-video-cloudinary
