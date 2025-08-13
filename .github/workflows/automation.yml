@@ -1,9 +1,11 @@
 name: Automatisation TikTok
 
 on:
-  push:
-    branches:
-      - main
+  schedule:
+    # Déclenchement automatique 2x par jour pour optimiser l'engagement USA
+    # 18:00 UTC (13:00 EST / 10:00 PST) - Heure de pointe soirée USA
+    # 02:00 UTC (21:00 EST / 18:00 PST) - Heure de pointe soirée USA (jour suivant)
+    - cron: "0 18,2 * * *"
   workflow_dispatch:
 
 jobs:
