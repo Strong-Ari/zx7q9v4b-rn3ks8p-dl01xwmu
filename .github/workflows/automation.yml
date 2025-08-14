@@ -1,6 +1,9 @@
 name: Automatisation TikTok
 
 on:
+  push:
+    branches:
+      - "main"
   schedule:
     # Déclenchement automatique 2x par jour pour optimiser l'engagement USA
     # 18:00 UTC (13:00 EST / 10:00 PST) - Heure de pointe soirée USA
@@ -46,15 +49,16 @@ jobs:
           LOGIN_HASH=$(npx tsx scripts/generate-login-hash.ts | cut -d '=' -f 2)
           echo "LOGIN_HASH=$LOGIN_HASH" >> $GITHUB_ENV
 
-      # 🏆 CACHE PLAYWRIGHT - Installation une seule fois !
       - name: 💾 Restaurer le cookie Playwright
         uses: actions/cache@v4
         id: cookie-cache
         with:
           path: |
             cookies.json
+            cookies.meta.json
           key: playwright-cookie-${{ runner.os }}-${{ env.LOGIN_HASH }}
 
+      # 🏆 CACHE PLAYWRIGHT - Installation une seule fois !
       - name: 💾 Cache des navigateurs Playwright
         uses: actions/cache@v4
         id: playwright-cache
@@ -121,6 +125,7 @@ jobs:
         with:
           path: |
             cookies.json
+            cookies.meta.json
           key: playwright-cookie-${{ runner.os }}-${{ env.LOGIN_HASH }}
 
       - name: 💾 Sauvegarder le cache des navigateurs Playwright

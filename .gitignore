@@ -38,3 +38,5 @@ out/
 .env
 build
 public/songs/Super Mario 64 - Medley (1).wav
+cookies.json
+cookies.meta.json

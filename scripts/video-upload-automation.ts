@@ -6,6 +6,7 @@ import { promises as fs } from "fs";
 import { existsSync } from "fs";
 import dotenv from "dotenv";
 import path from "path";
+import crypto from "crypto";
 
 // Charger les variables d'environnement
 dotenv.config();
@@ -31,6 +32,7 @@ interface Config {
 }
 
 const COOKIES_PATH = "cookies.json";
+const COOKIES_META_PATH = "cookies.meta.json";
 const VIDEO_LINK_PATH = "cloudinary-link.txt";
 const LOGIN_URL = "https://app.metricool.com/home";
 const PLANNER_URL = "https://app.metricool.com/planner";
@@ -104,12 +106,32 @@ async function takeScreenshot(
   }
 }
 
+// Fonction utilitaire pour générer un hash d'identifiants (même algo que generate-login-hash.ts)
+function getLoginHash(email: string, password: string): string {
+  return crypto
+    .createHash("sha256")
+    .update(`${email}:${password}`)
+    .digest("hex")
+    .slice(0, 8);
+}
+
 // Fonction pour sauvegarder les cookies
-async function saveCookies(context: BrowserContext): Promise<void> {
+async function saveCookies(
+  context: BrowserContext,
+  loginHash: string,
+  email: string,
+): Promise<void> {
   try {
     logWithTimestamp("🔄 Sauvegarde des cookies en cours...");
     const cookies = await context.cookies();
     await fs.writeFile(COOKIES_PATH, JSON.stringify(cookies, null, 2));
+    const meta = {
+      loginHash,
+      emailMasked: email.replace(/(.{2}).*@/, "$1***@"),
+      createdAt: new Date().toISOString(),
+      version: 1,
+    };
+    await fs.writeFile(COOKIES_META_PATH, JSON.stringify(meta, null, 2));
     logWithTimestamp(
       `💾 Cookies sauvegardés avec succès (${cookies.length} cookies)`,
     );
@@ -119,14 +141,42 @@ async function saveCookies(context: BrowserContext): Promise<void> {
   }
 }
 
-// Fonction pour charger les cookies
-async function loadCookies(context: BrowserContext): Promise<boolean> {
+// Fonction pour charger les cookies en vérifiant qu'ils correspondent bien aux identifiants
+async function loadCookies(
+  context: BrowserContext,
+  expectedLoginHash: string,
+): Promise<boolean> {
   try {
     logWithTimestamp("🔍 Recherche du fichier de cookies...");
     if (!existsSync(COOKIES_PATH)) {
       logWithTimestamp("⚠️ Aucun fichier de cookies trouvé");
       return false;
     }
+
+    // Vérifier le meta pour s'assurer que les cookies correspondent au bon compte
+    if (!existsSync(COOKIES_META_PATH)) {
+      logWithTimestamp(
+        "⚠️ Fichier meta des cookies manquant. Les cookies existants seront ignorés.",
+      );
+      return false;
+    }
+
+    try {
+      const metaRaw = await fs.readFile(COOKIES_META_PATH, "utf8");
+      const meta = JSON.parse(metaRaw) as { loginHash?: string };
+      if (!meta.loginHash || meta.loginHash !== expectedLoginHash) {
+        logWithTimestamp(
+          `⚠️ Incompatibilité de cookies détectée (hash attendu: ${expectedLoginHash}, trouvé: ${meta.loginHash || "aucun"}). Ignorer ces cookies.`,
+        );
+        return false;
+      }
+    } catch (e) {
+      logWithTimestamp(
+        `⚠️ Impossible de lire/valider le meta des cookies: ${e}. Ignorer ces cookies.`,
+      );
+      return false;
+    }
+
     const cookiesJSON = await fs.readFile(COOKIES_PATH, "utf8");
     const cookies = JSON.parse(cookiesJSON);
     if (!Array.isArray(cookies) || cookies.length === 0) {
@@ -804,6 +854,7 @@ async function run(): Promise<void> {
 
     const config = validateEnvironmentVariables();
     const videoLink = await readVideoLink();
+    const loginHash = getLoginHash(config.email, config.password);
 
     // Lancement du navigateur avec playwright-extra et plugins stealth
     logWithTimestamp("🌐 Lancement du navigateur avec anti-détection...");
@@ -905,7 +956,7 @@ async function run(): Promise<void> {
     });
 
     // Chargement des cookies
-    const cookiesLoaded = await loadCookies(context);
+    const cookiesLoaded = await loadCookies(context, loginHash);
 
     // Vérification de la session si cookies chargés
     let sessionIsValid = false;
@@ -933,7 +984,7 @@ async function run(): Promise<void> {
     if (!sessionIsValid) {
       logWithTimestamp("🔐 Connexion requise...");
       await login(page, config.email, config.password);
-      await saveCookies(context);
+      await saveCookies(context, loginHash, config.email);
     } else {
       logWithTimestamp("✅ Session existante utilisée");
       // Pas besoin de re-naviguer, isSessionValid() l'a déjà fait
