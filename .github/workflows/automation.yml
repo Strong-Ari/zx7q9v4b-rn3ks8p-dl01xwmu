@@ -1,9 +1,6 @@
 name: Automatisation TikTok
 
 on:
-  push:
-    branches:
-      - "main"
   schedule:
     # Déclenchement automatique 2x par jour pour optimiser l'engagement USA
     # 18:00 UTC (13:00 EST / 10:00 PST) - Heure de pointe soirée USA

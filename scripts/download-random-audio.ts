@@ -1,6 +1,7 @@
 import "dotenv/config";
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 
 const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
 const apiKey = process.env.CLOUDINARY_API_KEY;
@@ -26,8 +27,7 @@ async function main() {
     }
 
     if (soundFiles.length > 0) {
-      const randomSound =
-        soundFiles[Math.floor(Math.random() * soundFiles.length)];
+      const randomSound = soundFiles[crypto.randomInt(0, soundFiles.length)];
       const sourcePath = path.join(soundsDir, randomSound);
       const ext = path.extname(randomSound);
       const destPath = ext === ".mp3" ? localAudioMp3Path : localAudioWavPath;
@@ -75,8 +75,7 @@ async function main() {
         .filter((file) => file.endsWith(".wav") || file.endsWith(".mp3"));
     }
     if (soundFiles.length > 0) {
-      const randomSound =
-        soundFiles[Math.floor(Math.random() * soundFiles.length)];
+      const randomSound = soundFiles[crypto.randomInt(0, soundFiles.length)];
       const sourcePath = path.join(soundsDir, randomSound);
       const ext = path.extname(randomSound);
       const destPath = ext === ".mp3" ? localAudioMp3Path : localAudioWavPath;
@@ -110,7 +109,7 @@ async function main() {
   console.log(`🎵 ${audios.length} musiques trouvées dans le dossier 'music'`);
 
   // 2. Choisir un fichier audio au hasard
-  const randomAudio = audios[Math.floor(Math.random() * audios.length)];
+  const randomAudio = audios[crypto.randomInt(0, audios.length)];
   console.log(`🎯 Musique choisie : ${randomAudio.public_id}`);
   console.log(`🔗 URL de la musique : ${randomAudio.secure_url}`);
 
