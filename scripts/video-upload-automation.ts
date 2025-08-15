@@ -38,28 +38,61 @@ const LOGIN_URL = "https://app.metricool.com/home";
 const PLANNER_URL = "https://app.metricool.com/planner";
 const SCREENSHOTS_DIR = "screenshots";
 
-const descriptions: string[] = [
-  "Follow + comment 👇 Best one's in my next vid! 🔥 #fyp #viral",
-  "Comment & follow – I'll feature one next! 🚀💬 #trending",
-  "Follow + comment = maybe YOU next vid! ⭐🔥 #foryou",
-  "Drop a comment & follow – I pick one! 😎🔥 #viralvideo",
-  "Follow + comment, get in next upload! 💥🎉 #explore",
-  "Follow + comment – your words next vid! 💡🔥 #fypシ",
-  "Comment & follow – I pick a winner! 🤩💬 #trendingnow",
-  "Follow + comment = chance to be next! 🚀⭐ #viral",
-  "Follow + comment – maybe YOU get picked! ✨🔥 #foryoupage",
-  "Comment & follow – I'll show one next! 🎉💥 #viralchallenge",
-  "Follow + comment – be in next TikTok! 🔥💬 #fyp",
-  "Comment & follow – best one's in! 📢💥 #trending",
-  "Follow + comment, see your name next! 🌟💬 #viral",
-  "Follow + comment – I'll pick the top! 🚀🔥 #foryou",
-  "Comment & follow – your words next! 💥💬 #viralvideo",
-  "Follow + comment = feature next vid! 🌟🔥 #explorepage",
-  "Follow + comment – be the lucky one! 🍀💬 #trendingnow",
-  "Comment & follow – I choose one next! 🎯🔥 #viralcontent",
-  "Follow + comment = spotlight next! 💡💥 #fypシ",
-  "Comment & follow – could be YOU! ⭐💬 #viralchallenge",
-];
+// Fonction utilitaire pour sélectionner un élément aléatoire
+function pickRandom<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+// Fonction pour générer une description unique
+function generateDescription(): string {
+  const actions = [
+    "Follow + comment",
+    "Comment & follow",
+    "Drop a comment & follow",
+    "Follow + drop your comment",
+    "Leave a comment & follow",
+    "Follow, then comment",
+    "Comment first, then follow",
+    "Follow me + comment below",
+  ];
+
+  const endings = [
+    "– I'll feature one next! 🚀💬",
+    "= maybe YOU next vid! ⭐🔥",
+    "– your words next vid! 💡🔥",
+    "– be in next TikTok! 🔥💬",
+    "– I pick a winner! 🤩💬",
+    "= chance to be next! 🚀⭐",
+    "– could be YOU! ⭐💬",
+    "– I'll show one next! 🎉💥",
+    "= spotlight next! 💡💥",
+    "– get featured next! 🌟💬",
+    "= next video star! 🎯🔥",
+    "– join the fun! 🎉💥",
+  ];
+
+  const hashtags = [
+    "#fyp #gaming #arcade",
+    "#foryou #mobilegame #challenge",
+    "#viral #game #skill",
+    "#fypシ #arcade #balls",
+    "#foryoupage #gaming #fun",
+    "#viral #game #rings",
+    "#fyp #challenge #gaming",
+    "#viral #rings #fun",
+    "#viral #ball #arcade",
+    "#foryou #game #skill",
+    "#viral #arcade #challenge",
+    "#fyp #game #fun",
+    "#viral #gaming #skill",
+    "#foryou #arcade #challenge",
+  ];
+
+  return `${pickRandom(actions)} ${pickRandom(endings)} ${pickRandom(hashtags)}`;
+}
+
+// Générer une description unique à chaque exécution
+const descriptions: string[] = [generateDescription()];
 
 // Fonction utilitaire pour les délais aléatoires (plus humain)
 const humanDelay = (min: number = 1000, max: number = 3000): Promise<void> => {
@@ -210,7 +243,21 @@ async function ensureOnPlanningTab(page: Page): Promise<void> {
     await page.waitForLoadState("networkidle", { timeout: 15000 });
     await humanDelay(2000, 3000);
 
-    logWithTimestamp("✅ Navigation vers la page Planification réussie");
+    // Vérifier que la page est bien chargée
+    try {
+      await page.waitForSelector(
+        'button:has-text("Créer une publication"), button:has-text("Create"), button:has-text("Créer")',
+        { timeout: 10000 },
+      );
+      logWithTimestamp("✅ Page Planification chargée avec succès");
+    } catch {
+      logWithTimestamp(
+        "⚠️ Bouton de création non trouvé, tentative de rafraîchissement...",
+      );
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await humanDelay(3000, 5000);
+    }
+
     await takeScreenshot(
       page,
       "planner_page_loaded",
@@ -228,40 +275,66 @@ async function ensureOnPlanningTab(page: Page): Promise<void> {
 async function isSessionValid(page: Page): Promise<boolean> {
   try {
     logWithTimestamp("🔍 Vérification de la validité de la session...");
-    await ensureOnPlanningTab(page);
 
-    // Attendre et vérifier la présence du bouton "Créer une publication"
-    try {
-      await page.waitForSelector('button:has-text("Créer une publication")', {
-        timeout: 15000,
-      });
-      logWithTimestamp("✅ Session valide détectée");
-      return true;
-    } catch {
-      // Essayer avec d'autres sélecteurs possibles
-      const alternativeSelectors = [
-        'button[data-testid="create-publication"]',
-        'button:has-text("Create")',
-        'button:has-text("Créer")',
-        ".create-post-btn",
-        '[data-cy="create-post"]',
-      ];
-
-      for (const selector of alternativeSelectors) {
-        try {
-          await page.waitForSelector(selector, { timeout: 3000 });
-          logWithTimestamp(
-            `✅ Session valide détectée avec sélecteur alternatif: ${selector}`,
-          );
-          return true;
-        } catch {
-          continue;
-        }
-      }
-
-      logWithTimestamp("❌ Session invalide ou expirée - bouton non trouvé");
+    // Vérifier si on est sur la page de connexion
+    const currentUrl = page.url();
+    if (currentUrl.includes("/login") || currentUrl.includes("/auth")) {
+      logWithTimestamp(
+        "❌ Redirigé vers la page de connexion - session invalide",
+      );
       return false;
     }
+
+    // Vérifier la présence d'éléments indiquant qu'on est connecté
+    const loggedInIndicators = [
+      'button:has-text("Créer une publication")',
+      'button:has-text("Create")',
+      'button:has-text("Créer")',
+      'button[data-testid="create-publication"]',
+      ".create-post-btn",
+      '[data-cy="create-post"]',
+      // Indicateurs de profil utilisateur
+      ".user-menu",
+      ".profile-menu",
+      '[data-testid="user-menu"]',
+      // Indicateurs de navigation connectée
+      ".nav-planner",
+      '[href*="/planner"]',
+    ];
+
+    for (const selector of loggedInIndicators) {
+      try {
+        const element = await page.$(selector);
+        if (element && (await element.isVisible())) {
+          logWithTimestamp(`✅ Session valide détectée avec: ${selector}`);
+          return true;
+        }
+      } catch {
+        continue;
+      }
+    }
+
+    // Vérifier si on est sur la page planner et qu'elle est bien chargée
+    if (currentUrl.includes("/planner")) {
+      try {
+        await page.waitForSelector(
+          'button:has-text("Créer une publication"), button:has-text("Create"), button:has-text("Créer")',
+          { timeout: 5000 },
+        );
+        logWithTimestamp(
+          "✅ Session valide - page planner chargée correctement",
+        );
+        return true;
+      } catch {
+        logWithTimestamp(
+          "❌ Page planner chargée mais bouton de création non trouvé",
+        );
+        return false;
+      }
+    }
+
+    logWithTimestamp("❌ Session invalide ou expirée");
+    return false;
   } catch (error) {
     logWithTimestamp(`❌ Erreur lors de la vérification de session: ${error}`);
     return false;
@@ -276,6 +349,19 @@ async function login(
 ): Promise<void> {
   try {
     logWithTimestamp("🔐 Début de la procédure de connexion...");
+
+    // Vérifier d'abord si on n'est pas déjà connecté
+    const currentUrl = page.url();
+    if (!currentUrl.includes("/login") && !currentUrl.includes("/auth")) {
+      logWithTimestamp(
+        "⚠️ Pas sur la page de connexion, vérification de session...",
+      );
+      const sessionValid = await isSessionValid(page);
+      if (sessionValid) {
+        logWithTimestamp("✅ Déjà connecté, pas besoin de se reconnecter");
+        return;
+      }
+    }
 
     await page.goto(LOGIN_URL, {
       waitUntil: "domcontentloaded",
@@ -315,9 +401,9 @@ async function login(
     logWithTimestamp("▶️ Connexion...");
     const loginButton = await page.$("#loginFormSubmit");
     if (loginButton) {
-      await loginButton.hover();
+      await safeInteraction(page, loginButton, "hover", "Bouton de connexion");
       await humanDelay(300, 700);
-      await loginButton.click();
+      await safeInteraction(page, loginButton, "click", "Bouton de connexion");
     }
 
     // Attendre la redirection après connexion
@@ -325,8 +411,21 @@ async function login(
       await page.waitForURL("**/planner*", { timeout: 30000 });
       logWithTimestamp("✅ Redirection vers planner détectée");
     } catch {
-      // Attendre avec timeout plus long
-      await humanDelay(8000, 12000);
+      logWithTimestamp(
+        "⚠️ Redirection automatique échouée, tentative de navigation manuelle...",
+      );
+
+      // Attendre un peu puis forcer la navigation
+      await humanDelay(3000, 5000);
+
+      // Forcer la navigation vers le planner
+      await page.goto(PLANNER_URL, {
+        waitUntil: "domcontentloaded",
+        timeout: 30000,
+      });
+      await humanDelay(3000, 5000);
+
+      logWithTimestamp("✅ Navigation manuelle vers planner effectuée");
     }
 
     logWithTimestamp("✅ Connexion réussie");
@@ -339,11 +438,10 @@ async function login(
   }
 }
 
-// Fonction pour obtenir une description aléatoire
+// Fonction pour obtenir la description générée (maintenant unique à chaque exécution)
 function getRandomDescription(): string {
-  const randomIndex = Math.floor(Math.random() * descriptions.length);
-  const selectedDescription = descriptions[randomIndex];
-  logWithTimestamp(`🎲 Description sélectionnée: "${selectedDescription}"`);
+  const selectedDescription = descriptions[0]; // Toujours la première car générée dynamiquement
+  logWithTimestamp(`🎲 Description générée: "${selectedDescription}"`);
   return selectedDescription;
 }
 
@@ -466,6 +564,163 @@ async function findCreatePublicationButton(page: Page): Promise<any> {
   return null;
 }
 
+// Fermer le toast principal s'il est visible (ciblé, non agressif)
+async function closeToastIfVisible(page: Page): Promise<boolean> {
+  try {
+    const toastCloseBtn = await page.$(
+      'div.flex.items-center.justify-between.pl-4.pr-2.py-2.gap-4.text-white .v-icon.fa-xmark, div.flex.items-center.justify-between.pl-4.pr-2.py-2.gap-4.text-white .v-icon[aria-label="Fermer"], div.flex.items-center.justify-between.pl-4.pr-2.py-2.gap-4.text-white button[aria-label="Fermer"]',
+    );
+    if (toastCloseBtn && (await toastCloseBtn.isVisible())) {
+      await toastCloseBtn.click({ force: true });
+      await humanDelay(200, 400);
+      logWithTimestamp("Toast fermé (icone croix)");
+      return true;
+    }
+  } catch {}
+  return false;
+}
+
+// Fonction pour gérer les éléments bloquants et améliorer les interactions
+async function safeInteraction(
+  page: Page,
+  element: any,
+  action: "hover" | "click",
+  description: string,
+): Promise<void> {
+  try {
+    logWithTimestamp(`🔄 Tentative ${action} sur: ${description}`);
+
+    // Vérifier si l'élément est visible et stable
+    await element.waitForElementState("stable", { timeout: 10000 });
+
+    // Faire défiler l'élément en vue si nécessaire
+    await element.scrollIntoViewIfNeeded();
+    await humanDelay(200, 500);
+
+    // Vérifier s'il y a des éléments qui bloquent (point central intercepté)
+    let isBlocked = await page.evaluate((el) => {
+      const rect = el.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const elementAtPoint = document.elementFromPoint(centerX, centerY);
+      return elementAtPoint !== el && !el.contains(elementAtPoint);
+    }, element);
+
+    if (isBlocked) {
+      logWithTimestamp(
+        `⚠️ Élément bloqué détecté, tentative ciblée de déblocage...`,
+      );
+
+      // Fermer uniquement le toast connu
+      await closeToastIfVisible(page);
+
+      // Fermer un éventuel overlay (scrim) Vuetify
+      try {
+        const scrim = await page.$(".v-overlay__scrim");
+        if (scrim && (await scrim.isVisible())) {
+          await scrim.click({ force: true });
+          await humanDelay(200, 400);
+          logWithTimestamp("Overlay (scrim) cliqué");
+        }
+      } catch {}
+
+      await humanDelay(400, 700);
+
+      // Re-check
+      isBlocked = await page.evaluate((el) => {
+        const rect = el.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        const elementAtPoint = document.elementFromPoint(centerX, centerY);
+        return elementAtPoint !== el && !el.contains(elementAtPoint);
+      }, element);
+    }
+
+    // Exécuter l'action avec retry (moins agressif)
+    let retryCount = 0;
+    const maxRetries = 2;
+
+    while (retryCount < maxRetries) {
+      try {
+        if (action === "hover") {
+          await element.hover({ timeout: 8000 });
+        } else {
+          await element.click({ timeout: 8000, force: true });
+        }
+        logWithTimestamp(`✅ ${action} réussi sur: ${description}`);
+        return;
+      } catch (error) {
+        retryCount++;
+        logWithTimestamp(
+          `⚠️ Tentative ${retryCount}/${maxRetries} échouée: ${error}`,
+        );
+        if (retryCount < maxRetries) {
+          await humanDelay(500, 900);
+          await closeToastIfVisible(page);
+        }
+      }
+    }
+
+    throw new Error(
+      `${action} échoué après ${maxRetries} tentatives sur: ${description}`,
+    );
+  } catch (error) {
+    logWithTimestamp(
+      `❌ Erreur lors de ${action} sur ${description}: ${error}`,
+    );
+    throw error;
+  }
+}
+
+// Fonction pour nettoyer proactivement les éléments bloquants
+async function cleanupBlockingElements(page: Page): Promise<void> {
+  try {
+    logWithTimestamp("🧹 Nettoyage des éléments bloquants...");
+
+    // Sélecteurs des éléments qui peuvent bloquer
+    const blockingSelectors = [
+      "div.text-white .v-icon.fa-xmark",
+      'div.text-white .v-icon[aria-label="Fermer"]',
+      'div.text-white button[aria-label="Fermer"]',
+      ".toast",
+      ".modal",
+      ".overlay",
+      ".notification",
+      ".alert",
+      '[class*="toast"]',
+      '[class*="modal"]',
+      '[class*="overlay"]',
+      '[class*="notification"]',
+      '[class*="alert"]',
+    ];
+
+    for (const selector of blockingSelectors) {
+      try {
+        const elements = await page.$$(selector);
+        for (const element of elements) {
+          if (await element.isVisible()) {
+            try {
+              await element.click({ timeout: 5000, force: true });
+              await humanDelay(200, 400);
+              logWithTimestamp(`Élément bloquant fermé: ${selector}`);
+            } catch (e) {
+              // Ignorer les erreurs de clic
+            }
+          }
+        }
+      } catch (e) {
+        // Ignorer les erreurs de sélecteur
+      }
+    }
+
+    // Attendre un peu après le nettoyage
+    await humanDelay(500, 1000);
+    logWithTimestamp("✅ Nettoyage des éléments bloquants terminé");
+  } catch (error) {
+    logWithTimestamp(`⚠️ Erreur lors du nettoyage: ${error}`);
+  }
+}
+
 // Fonction principale d'automatisation avec anti-détection
 async function automatePublication(
   page: Page,
@@ -504,13 +759,33 @@ async function automatePublication(
         );
       }
 
-      await createButtonAfterReload.hover();
+      await safeInteraction(
+        page,
+        createButtonAfterReload,
+        "hover",
+        "Bouton Créer une publication (après reload)",
+      );
       await humanDelay(300, 800);
-      await createButtonAfterReload.click();
+      await safeInteraction(
+        page,
+        createButtonAfterReload,
+        "click",
+        "Bouton Créer une publication (après reload)",
+      );
     } else {
-      await createButton.hover();
+      await safeInteraction(
+        page,
+        createButton,
+        "hover",
+        "Bouton Créer une publication",
+      );
       await humanDelay(300, 800);
-      await createButton.click();
+      await safeInteraction(
+        page,
+        createButton,
+        "click",
+        "Bouton Créer une publication",
+      );
     }
 
     await humanDelay(2000, 4000);
@@ -534,7 +809,7 @@ async function automatePublication(
     if (!descriptionInput) {
       throw new Error("Champ description introuvable");
     }
-    await descriptionInput.click();
+    await safeInteraction(page, descriptionInput, "click", "Champ description");
     await humanDelay(500, 1000);
     await page.type(
       'span.placeholder.editor-box[contenteditable="true"]',
@@ -546,15 +821,129 @@ async function automatePublication(
     await humanDelay(1000, 2000);
     await takeScreenshot(page, "description_typed", "Description saisie");
 
+    // Ouvrir le panneau Tiktok presets et activer "Autoriser les commentaires"
+    logWithTimestamp('▶️ Ouverture du panneau "Tiktok presets"...');
+    try {
+      let tiktokPanelButton = await page.$(
+        'button.v-expansion-panel-title:has(.fa-tiktok), button.v-expansion-panel-title:has-text("Tiktok presets")',
+      );
+      if (!tiktokPanelButton) {
+        tiktokPanelButton = await page.$(
+          'button.v-expansion-panel-title:has-text("Tiktok presets")',
+        );
+      }
+      if (tiktokPanelButton) {
+        const expanded = await tiktokPanelButton.getAttribute("aria-expanded");
+        if (expanded !== "true") {
+          await safeInteraction(
+            page,
+            tiktokPanelButton,
+            "hover",
+            'Panneau "Tiktok presets"',
+          );
+          await humanDelay(150, 350);
+          await safeInteraction(
+            page,
+            tiktokPanelButton,
+            "click",
+            'Panneau "Tiktok presets"',
+          );
+        }
+        try {
+          await page.waitForFunction(
+            (btn) => {
+              const panel = (btn as Element).closest(".v-expansion-panel");
+              if (!panel) return false;
+              const content = panel.querySelector(".v-expansion-panel-text");
+              if (!content) return false;
+              const style = window.getComputedStyle(content as Element);
+              return (
+                style.display !== "none" &&
+                (content as HTMLElement).offsetHeight > 0
+              );
+            },
+            tiktokPanelButton,
+            { timeout: 5000 },
+          );
+        } catch {}
+        await takeScreenshot(
+          page,
+          "tiktok_presets_opened",
+          'Panneau "Tiktok presets" ouvert',
+        );
+      } else {
+        logWithTimestamp('⚠️ Panneau "Tiktok presets" introuvable');
+      }
+
+      // Activer "Autoriser les commentaires"
+      logWithTimestamp('🗨️ Activation de "Autoriser les commentaires"...');
+      let commentsInput = await page.$(
+        'input[aria-label="Autoriser les commentaires"]',
+      );
+      if (!commentsInput) {
+        const labelEl = await page.$(
+          'label:has-text("Autoriser les commentaires")',
+        );
+        if (labelEl) {
+          const inputFromLabel = await labelEl.$(
+            'xpath=preceding-sibling::div[contains(@class,"v-selection-control__input")]/input',
+          );
+          if (inputFromLabel) commentsInput = inputFromLabel;
+        }
+      }
+      if (commentsInput) {
+        const isChecked: boolean = await page.evaluate(
+          (el) => (el as HTMLInputElement).checked,
+          commentsInput,
+        );
+        if (!isChecked) {
+          const wrapperHandle = (await page.evaluateHandle(
+            (el) =>
+              el.closest("div.v-selection-control__wrapper") as HTMLElement,
+            commentsInput,
+          )) as any;
+          await safeInteraction(
+            page,
+            wrapperHandle,
+            "click",
+            'Wrapper "Autoriser les commentaires"',
+          );
+          await page.waitForFunction(
+            (el) => {
+              const input = el as HTMLInputElement;
+              const wrapper = input.closest("div.v-selection-control__wrapper");
+              const hasSuccess = wrapper?.classList.contains("text-success");
+              return input.checked === true || !!hasSuccess;
+            },
+            commentsInput,
+            { timeout: 5000 },
+          );
+          await takeScreenshot(
+            page,
+            "comments_enabled",
+            '"Autoriser les commentaires" activé',
+          );
+        } else {
+          logWithTimestamp('"Autoriser les commentaires" déjà activé');
+        }
+      } else {
+        logWithTimestamp('⚠️ Input "Autoriser les commentaires" introuvable');
+      }
+    } catch (e) {
+      logWithTimestamp(
+        `⚠️ Impossible d'ouvrir le panneau presets ou d'activer les commentaires: ${e}`,
+      );
+    }
+
     // Ajout vidéo
     logWithTimestamp("📹 Recherche bouton ajout vidéo...");
     const videoButton = await page.$("button:has(i.fa-regular.fa-photo-video)");
     if (!videoButton) {
       throw new Error("Bouton ajout vidéo introuvable");
     }
-    await videoButton.hover();
+    await safeInteraction(page, videoButton, "hover", "Bouton ajout vidéo");
     await humanDelay(300, 700);
-    await videoButton.click();
+    await safeInteraction(page, videoButton, "click", "Bouton ajout vidéo");
     await humanDelay(1000, 2000);
     await takeScreenshot(
       page,
@@ -568,9 +957,19 @@ async function automatePublication(
     if (!addVideoOption) {
       throw new Error('Option "Ajouter une vidéo" introuvable');
     }
-    await addVideoOption.hover();
+    await safeInteraction(
+      page,
+      addVideoOption,
+      "hover",
+      "Option Ajouter une vidéo",
+    );
     await humanDelay(200, 500);
-    await addVideoOption.click();
+    await safeInteraction(
+      page,
+      addVideoOption,
+      "click",
+      "Option Ajouter une vidéo",
+    );
     await humanDelay(1000, 2000);
     await takeScreenshot(
       page,
@@ -584,9 +983,9 @@ async function automatePublication(
     if (!urlButton) {
       throw new Error('Bouton "URL" introuvable');
     }
-    await urlButton.hover();
+    await safeInteraction(page, urlButton, "hover", "Bouton URL");
     await humanDelay(300, 600);
-    await urlButton.click();
+    await safeInteraction(page, urlButton, "click", "Bouton URL");
     await humanDelay(1000, 2000);
     await takeScreenshot(page, "url_button_clicked", "Bouton URL cliqué");
 
@@ -682,9 +1081,9 @@ async function automatePublication(
     if (!acceptButton) {
       throw new Error('Bouton "Accepter" introuvable au moment du clic');
     }
-    await acceptButton.hover();
+    await safeInteraction(page, acceptButton, "hover", "Bouton Accepter");
     await humanDelay(300, 700);
-    await acceptButton.click();
+    await safeInteraction(page, acceptButton, "click", "Bouton Accepter");
     await humanDelay(2000, 4000);
     await takeScreenshot(page, "accept_clicked", "Bouton Accepter cliqué");
 
@@ -705,9 +1104,19 @@ async function automatePublication(
     if (!publishDropdown) {
       throw new Error("Dropdown de publication introuvable");
     }
-    await publishDropdown.hover();
+    await safeInteraction(
+      page,
+      publishDropdown,
+      "hover",
+      "Dropdown de publication",
+    );
     await humanDelay(300, 600);
-    await publishDropdown.click();
+    await safeInteraction(
+      page,
+      publishDropdown,
+      "click",
+      "Dropdown de publication",
+    );
     await humanDelay(1000, 2000);
     await takeScreenshot(
       page,
@@ -749,12 +1158,19 @@ async function automatePublication(
       throw new Error('Bouton final "Publier maintenant" introuvable');
     }
 
+    // Nettoyage proactif désactivé pour éviter les interférences
+
     // Fermer le toast s'il est présent AVANT de cliquer sur Publier maintenant
     const toastCloseBtnBeforePublish = await page.$(
       'div.text-white .v-icon.fa-xmark, div.text-white .v-icon[aria-label="Fermer"], div.text-white button[aria-label="Fermer"]',
     );
     if (toastCloseBtnBeforePublish) {
-      await toastCloseBtnBeforePublish.click();
+      await safeInteraction(
+        page,
+        toastCloseBtnBeforePublish,
+        "click",
+        "Toast fermeture avant publication",
+      );
       await humanDelay(500, 1000);
       logWithTimestamp("Toast fermé avant publication");
     }
@@ -772,10 +1188,57 @@ async function automatePublication(
       );
     }
 
-    await finalPublishButton.hover();
-    await humanDelay(500, 1000);
-    await finalPublishButton.click();
-    await humanDelay(2000, 4000);
+    // Tentative de clic direct d'abord, puis avec safeInteraction si échec
+    logWithTimestamp("🎯 Tentative de clic sur le bouton final...");
+    try {
+      // Vérifier que le bouton est toujours visible et cliquable
+      const isStillVisible = await finalPublishButton.isVisible();
+      const isEnabled = await finalPublishButton.isEnabled();
+      logWithTimestamp(
+        `🔍 État du bouton: visible=${isStillVisible}, enabled=${isEnabled}`,
+      );
+
+      if (isStillVisible && isEnabled) {
+        // Essayer un clic direct d'abord
+        await finalPublishButton.click({ timeout: 10000, force: true });
+        logWithTimestamp("✅ Clic direct réussi sur le bouton final");
+      } else {
+        logWithTimestamp(
+          "⚠️ Bouton non visible/enabled, utilisation de safeInteraction",
+        );
+        await safeInteraction(
+          page,
+          finalPublishButton,
+          "hover",
+          "Bouton final Publier maintenant",
+        );
+        await humanDelay(500, 1000);
+        await safeInteraction(
+          page,
+          finalPublishButton,
+          "click",
+          "Bouton final Publier maintenant",
+        );
+      }
+    } catch (error) {
+      logWithTimestamp(
+        `⚠️ Clic direct échoué: ${error}, utilisation de safeInteraction`,
+      );
+      await safeInteraction(
+        page,
+        finalPublishButton,
+        "hover",
+        "Bouton final Publier maintenant",
+      );
+      await humanDelay(500, 1000);
+      await safeInteraction(
+        page,
+        finalPublishButton,
+        "click",
+        "Bouton final Publier maintenant",
+      );
+    }
+    await humanDelay(3000, 5000);
     await takeScreenshot(
       page,
       "final_publish_clicked",
@@ -787,13 +1250,23 @@ async function automatePublication(
       'div.text-white .v-icon.fa-xmark, div.text-white .v-icon[aria-label="Fermer"], div.text-white button[aria-label="Fermer"]',
     );
     if (toastCloseBtn) {
-      await toastCloseBtn.click();
+      await safeInteraction(
+        page,
+        toastCloseBtn,
+        "click",
+        "Toast d'erreur fermeture",
+      );
       await humanDelay(500, 1000);
       logWithTimestamp("Toast d'erreur fermé automatiquement (croix)");
     }
 
-    // Vérification du succès
+    // Vérification du succès avec plus de détails
     logWithTimestamp("⏳ Vérification du succès de la publication...");
+    logWithTimestamp("🔍 Recherche du toast de succès...");
+
+    // Attendre un peu plus longtemps pour laisser le temps à la publication
+    await humanDelay(2000, 3000);
+
     try {
       await page.waitForFunction(
         () => {
@@ -805,7 +1278,7 @@ async function automatePublication(
             /succès|créée|success|created/i.test(toast.textContent || "")
           );
         },
-        { timeout: 60000 },
+        { timeout: 30000 },
       );
       logWithTimestamp("✅ Publication réussie, toast de validation détecté.");
       await takeScreenshot(
@@ -814,6 +1287,7 @@ async function automatePublication(
         "Toast de succès détecté",
       );
     } catch (e) {
+      logWithTimestamp(`⚠️ Timeout de la vérification: ${e}`);
       await takeScreenshot(
         page,
         "toast_success_not_found",
@@ -826,8 +1300,27 @@ async function automatePublication(
         return toast ? toast.outerHTML : "Aucun toast trouvé";
       });
       logWithTimestamp(
-        `⚠️ Toast de succès non détecté après 60s. HTML du toast: ${toastHtml}`,
+        `⚠️ Toast de succès non détecté après 30s. HTML du toast: ${toastHtml}`,
       );
+      // Vérifier s'il y a d'autres indicateurs de succès
+      const successIndicators = await page.evaluate(() => {
+        const successTexts = document.querySelectorAll("*");
+        const found = Array.from(successTexts).filter(
+          (el) =>
+            el.textContent &&
+            /succès|créée|success|created|publié|published/i.test(
+              el.textContent,
+            ),
+        );
+        return found
+          .map((el) => el.textContent?.trim())
+          .filter(Boolean)
+          .slice(0, 3);
+      });
+      logWithTimestamp(
+        `🔍 Indicateurs de succès trouvés: ${successIndicators.join(", ")}`,
+      );
+
       // On ne throw pas d'erreur fatale, on continue
     }
 
@@ -971,6 +1464,7 @@ async function run(): Promise<void> {
           timeout: 30000,
         });
         await humanDelay(5000, 8000);
+
         sessionIsValid = await isSessionValid(page);
       } catch (error) {
         logWithTimestamp(
@@ -987,7 +1481,8 @@ async function run(): Promise<void> {
       await saveCookies(context, loginHash, config.email);
     } else {
       logWithTimestamp("✅ Session existante utilisée");
-      // Pas besoin de re-naviguer, isSessionValid() l'a déjà fait
+      // S'assurer d'être sur la page de planification
+      await ensureOnPlanningTab(page);
     }
 
     // Automatisation avec anti-détection
