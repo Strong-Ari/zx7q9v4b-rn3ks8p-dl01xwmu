@@ -38,6 +38,9 @@ jobs:
       - name: 📦 Installer les dépendances
         run: pnpm install --frozen-lockfile
 
+      - name: 📦 Installer FFmpeg
+        uses: federicocarboni/setup-ffmpeg@v3.1
+
       - name: Générer LOGIN_HASH
         env:
           METRICOOL_EMAIL: ${{ secrets.METRICOOL_EMAIL }}
@@ -80,6 +83,22 @@ jobs:
         env:
           # Flags pour consistance de rendu Ubuntu
           CHROMIUM_FLAGS: "--no-sandbox --disable-setuid-sandbox --disable-dev-shm-usage --disable-gpu --force-device-scale-factor=1 --font-render-hinting=none --disable-font-subpixel-positioning"
+
+      - name: 📥 Télécharger la vidéo hook
+        run: pnpm run download-hook-video
+
+      - name: 🔗 Concaténer hook + vidéo principale avec FFmpeg
+        run: |
+          # Définir les chemins
+          hook="public/hook.mp4"
+          main="out/BallEscape.mp4"
+          temp="out/BallEscape_temp.mp4"
+
+          # Concaténation avec FFmpeg
+          ffmpeg -i "$hook" -i "$main" -filter_complex "[0:v][0:a][1:v][1:a]concat=n=2:v=1:a=1[outv][outa]" -map "[outv]" -map "[outa]" -y "$temp"
+
+          # Remplacer le fichier original
+          mv "$temp" "$main"
 
       - name: ✨ Postrender - upload sur Cloudinary
         run: pnpm run upload-video-cloudinary
