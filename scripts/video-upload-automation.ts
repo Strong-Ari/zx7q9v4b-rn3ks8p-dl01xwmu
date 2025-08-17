@@ -96,7 +96,14 @@ const descriptions: string[] = [generateDescription()];
 
 // Fonction utilitaire pour les délais aléatoires (plus humain)
 const humanDelay = (min: number = 1000, max: number = 3000): Promise<void> => {
-  const delay = Math.floor(Math.random() * (max - min + 1)) + min;
+  const isCI = isCIEnvironment();
+
+  // En CI, on augmente les délais pour éviter les timeouts
+  const adjustedMin = isCI ? Math.max(min, 2000) : min;
+  const adjustedMax = isCI ? Math.max(max, 5000) : max;
+
+  const delay =
+    Math.floor(Math.random() * (adjustedMax - adjustedMin + 1)) + adjustedMin;
   return new Promise((resolve) => setTimeout(resolve, delay));
 };
 
@@ -235,23 +242,66 @@ async function ensureOnPlanningTab(page: Page): Promise<void> {
     // Navigation directe vers la page planner avec retry
     await retryNavigation(page, PLANNER_URL);
 
-    // Attendre que la page soit complètement chargée
-    await page.waitForLoadState("networkidle", { timeout: 15000 });
-    await humanDelay(2000, 3000);
+    // Attendre que la page soit complètement chargée avec timeout adapté à l'environnement
+    const timeouts = getEnvironmentTimeouts();
 
-    // Vérifier que la page est bien chargée
     try {
-      await page.waitForSelector(
-        'button:has-text("Créer une publication"), button:has-text("Create"), button:has-text("Créer")',
-        { timeout: 10000 },
-      );
-      logWithTimestamp("✅ Page Planification chargée avec succès");
-    } catch {
+      await page.waitForLoadState("networkidle", {
+        timeout: timeouts.networkIdle,
+      });
+    } catch (error) {
       logWithTimestamp(
-        "⚠️ Bouton de création non trouvé, tentative de rafraîchissement...",
+        `⚠️ Timeout networkidle, tentative avec domcontentloaded: ${error}`,
       );
-      await page.reload({ waitUntil: "domcontentloaded" });
-      await humanDelay(3000, 5000);
+      await page.waitForLoadState("domcontentloaded", {
+        timeout: timeouts.networkIdle,
+      });
+    }
+
+    await humanDelay(3000, 5000); // Délai plus long en CI
+
+    // Vérifier que la page est bien chargée avec retry
+    let pageLoaded = false;
+    let attempts = 0;
+    const maxAttempts = 3;
+
+    while (!pageLoaded && attempts < maxAttempts) {
+      attempts++;
+      try {
+        await page.waitForSelector(
+          'button:has-text("Créer une publication"), button:has-text("Create"), button:has-text("Créer")',
+          { timeout: 15000 },
+        );
+        logWithTimestamp("✅ Page Planification chargée avec succès");
+        pageLoaded = true;
+      } catch (error) {
+        logWithTimestamp(
+          `⚠️ Tentative ${attempts}/${maxAttempts} - Bouton de création non trouvé: ${error}`,
+        );
+
+        if (attempts < maxAttempts) {
+          logWithTimestamp("🔄 Rafraîchissement de la page...");
+          await page.reload({ waitUntil: "domcontentloaded" });
+          await humanDelay(5000, 8000); // Délai plus long
+
+          // Attendre à nouveau le chargement
+          try {
+            await page.waitForLoadState("networkidle", {
+              timeout: timeouts.networkIdle,
+            });
+          } catch {
+            await page.waitForLoadState("domcontentloaded", {
+              timeout: timeouts.networkIdle,
+            });
+          }
+        }
+      }
+    }
+
+    if (!pageLoaded) {
+      throw new Error(
+        "Impossible de charger la page Planification après plusieurs tentatives",
+      );
     }
 
     await takeScreenshot(
@@ -461,6 +511,22 @@ async function readVideoLink(): Promise<string> {
   }
 }
 
+// Fonction pour détecter l'environnement CI/CD
+function isCIEnvironment(): boolean {
+  return process.env.CI === "true" || process.env.GITHUB_ACTIONS === "true";
+}
+
+// Fonction pour obtenir les timeouts adaptés à l'environnement
+function getEnvironmentTimeouts() {
+  const isCI = isCIEnvironment();
+  return {
+    navigation: isCI ? 45000 : 30000,
+    networkIdle: isCI ? 30000 : 15000,
+    selector: isCI ? 20000 : 10000,
+    element: isCI ? 15000 : 8000,
+  };
+}
+
 // Fonction pour valider les variables d'environnement
 function validateEnvironmentVariables(): Config {
   logWithTimestamp("🔍 Validation des variables d'environnement...");
@@ -473,6 +539,8 @@ function validateEnvironmentVariables(): Config {
     );
   }
 
+  const isCI = isCIEnvironment();
+  logWithTimestamp(`🌍 Environnement détecté: ${isCI ? "CI/CD" : "Local"}`);
   logWithTimestamp(
     `✅ Configuration chargée pour l'email: ${email.replace(/(.{2}).*@/, "$1***@")}`,
   );
@@ -1329,16 +1397,27 @@ async function retryNavigation(
   url: string,
   maxRetries: number = 3,
 ): Promise<void> {
+  const timeouts = getEnvironmentTimeouts();
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       logWithTimestamp(
         `🔄 Tentative ${attempt}/${maxRetries} de navigation vers ${url}...`,
       );
+
+      // En CI, on utilise domcontentloaded par défaut pour éviter les timeouts
+      const isCI = isCIEnvironment();
+      const waitUntil = isCI ? "domcontentloaded" : "domcontentloaded";
+
       await page.goto(url, {
-        waitUntil: "domcontentloaded",
-        timeout: 30000,
+        waitUntil: waitUntil,
+        timeout: timeouts.navigation,
       });
-      await humanDelay(5000, 8000);
+
+      // Délai plus long en CI
+      const delay = isCI ? 8000 : 5000;
+      await humanDelay(delay, delay + 3000);
+
       logWithTimestamp(`✅ Navigation réussie vers ${url}`);
       return;
     } catch (error) {
@@ -1347,7 +1426,7 @@ async function retryNavigation(
       );
       if (attempt < maxRetries) {
         logWithTimestamp(`⏳ Attente avant nouvelle tentative...`);
-        await humanDelay(3000, 5000);
+        await humanDelay(5000, 8000); // Délai plus long entre les tentatives
       } else {
         throw new Error(
           `Navigation échouée après ${maxRetries} tentatives: ${error}`,
@@ -1370,9 +1449,13 @@ async function run(): Promise<void> {
 
     // Lancement du navigateur avec playwright-extra et plugins stealth
     logWithTimestamp("🌐 Lancement du navigateur avec anti-détection...");
+
+    const isCI =
+      process.env.CI === "true" || process.env.GITHUB_ACTIONS === "true";
+
     browser = await chromiumExtra.launch({
       headless: true,
-      slowMo: 100, // Ralentissement pour paraître plus humain
+      slowMo: isCI ? 200 : 100, // Ralentissement plus important en CI
       channel: "chrome",
       args: [
         "--no-first-run",
@@ -1399,6 +1482,38 @@ async function run(): Promise<void> {
         "--enable-automation=false",
         "--password-store=basic",
         "--use-mock-keychain",
+        // Arguments supplémentaires pour CI/CD
+        "--disable-gpu",
+        "--disable-software-rasterizer",
+        "--disable-dev-shm-usage",
+        "--disable-background-timer-throttling",
+        "--disable-backgrounding-occluded-windows",
+        "--disable-renderer-backgrounding",
+        "--disable-features=TranslateUI",
+        "--disable-ipc-flooding-protection",
+        "--disable-hang-monitor",
+        "--disable-prompt-on-repost",
+        "--disable-client-side-phishing-detection",
+        "--disable-component-extensions-with-background-pages",
+        "--disable-default-apps",
+        "--disable-extensions",
+        "--disable-sync",
+        "--metrics-recording-only",
+        "--no-first-run",
+        "--safebrowsing-disable-auto-update",
+        "--disable-translate",
+        "--disable-background-networking",
+        "--disable-default-apps",
+        "--disable-extensions",
+        "--disable-sync",
+        "--disable-translate",
+        "--hide-scrollbars",
+        "--mute-audio",
+        "--no-first-run",
+        "--safebrowsing-disable-auto-update",
+        "--ignore-certificate-errors",
+        "--ignore-ssl-errors",
+        "--ignore-certificate-errors-spki-list",
       ],
     });
 

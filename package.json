@@ -47,6 +47,7 @@
     "video-upload-automation": "npx tsx scripts/video-upload-automation.ts",
     "download-hook-video": "npx tsx scripts/download-hook-video.ts",
     "remotion": "npm run preaudio && npm run preemotion && remotion studio",
-    "send-email": "tsx scripts/send-email.tsx"
+    "send-email": "tsx scripts/send-email.tsx",
+    "test-ci-simulation": "npx tsx scripts/test-ci-simulation.ts"
   }
 }

@@ -1,0 +1,52 @@
+name: Test Video Upload Automation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test-video-upload:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install chromium
+
+      - name: Create test video link file
+        run: echo "https://res.cloudinary.com/dsrk2ygmy/video/upload/v1755456873/BallEscape.mp4" > cloudinary-link.txt
+
+      - name: Run video upload automation
+        env:
+          METRICOOL_EMAIL: ${{ secrets.METRICOOL_EMAIL }}
+          METRICOOL_PASSWORD: ${{ secrets.METRICOOL_PASSWORD }}
+          CI: true
+          GITHUB_ACTIONS: true
+        run: pnpm run video-upload-automation
+        timeout-minutes: 10
+
+      - name: Upload screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: screenshots/
+          retention-days: 7
