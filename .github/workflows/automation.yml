@@ -38,6 +38,21 @@ jobs:
         with:
           node-version: "22"
 
+      - name: CPU benchmark
+        run: sysbench cpu --cpu-max-prime=20000 run
+
+      - name: Show CPU info
+        run: lscpu | grep '^CPU(s):'
+
+      - name: Show number of cores
+        run: nproc
+
+      - name: Show Memory
+        run: free -h
+
+      - name: Show Disk
+        run: df -h
+
       - name: 📥 Installer pnpm
         run: npm install -g pnpm
 
