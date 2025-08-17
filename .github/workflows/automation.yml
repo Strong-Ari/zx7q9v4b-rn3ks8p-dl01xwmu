@@ -1,6 +1,9 @@
 name: Automatisation TikTok
 
 on:
+  push:
+    branches:
+      - main
   schedule:
     # Déclenchement automatique 2x par jour pour optimiser l'engagement USA
     # 18:00 UTC (13:00 EST / 10:00 PST) - Heure de pointe soirée USA
@@ -15,6 +18,9 @@ jobs:
       CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
       CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
       CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
+      CLOUDINARY_VIDEO_CLOUD_NAME: ${{ secrets.CLOUDINARY_VIDEO_CLOUD_NAME }}
+      CLOUDINARY_VIDEO_API_KEY: ${{ secrets.CLOUDINARY_VIDEO_API_KEY }}
+      CLOUDINARY_VIDEO_API_SECRET: ${{ secrets.CLOUDINARY_VIDEO_API_SECRET }}
       CLOUDINARY_AUDIO_FOLDER: music
       METRICOOL_EMAIL: ${{ secrets.METRICOOL_EMAIL }}
       METRICOOL_PASSWORD: ${{ secrets.METRICOOL_PASSWORD }}
